@@ -7,6 +7,11 @@ from app.groups.router import router as group_router
 from app.users.router import router as user_router
 from app.auth.router import router as auth_router
 from app.acedemic.subjects.router import router as subject_router
+from app.acedemic.assignments.router import router as assignment_router
+
+
+
+
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     await pool_create()
@@ -22,10 +27,18 @@ app.include_router(group_router)
 app.include_router(user_router)
 app.include_router(auth_router)
 app.include_router(subject_router)
-
+app.include_router(
+    assignment_router,
+    prefix = "/api/v1/assignments",
+    tags   = ["Assignments"]
+)
 
 
 @app.get("/")
 async def home():
-    return {"message":"Hello Admin"}
-    
+    return {
+        "app": "University System",
+        "version": "1.0.0",
+        "status": "running",
+        "docs": "/docs"
+    }
