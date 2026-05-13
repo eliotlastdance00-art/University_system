@@ -9,21 +9,21 @@ from app.department import repository as department_repository
 
 
 #         CREATE_SUBJECT
-async def create_subject(conn,data:SubjectCreate):
+async def create_subject(conn,data:SubjectCreate) -> dict:
     department= await department_repository.get_department_by_id(conn,data.department_id)
     if not department:
         raise HTTPException(
             status_code=404,
             detail="Not found department"
         )
-    name=await repository.get_name_subjects(conn,data.name)
+    name=await repository.get_name_subjects(conn,data.name,data.department_id)
     if name:
         raise HTTPException(
             status_code=400,
             detail="This subject name has already"
         )
     await repository.create_subject(conn,data.name, data.credits, data.department_id)
-    subject=await repository.get_name_subjects(conn,data.name)
+    subject=await repository.get_name_subjects(conn,data.name,data.department_id)
     return SubjectResponse(**subject)
 
 
@@ -53,7 +53,7 @@ async def get_all_subject(conn):
 
 
 #       GET ALL SUBJECT FACULTY
-async def get_subject_faculty_all(conn,faculty_id:int):
+async def get_subject_faculty_all(conn,faculty_id:int)-> list[SubjectResponse]:
     faculty= await faculty_repository.get_faculty_by_id(conn,faculty_id)
     if not faculty:
         raise HTTPException(

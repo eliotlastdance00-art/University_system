@@ -1,20 +1,20 @@
 from fastapi import APIRouter, Depends
+from aiomysql import Connection
+from app.core.database import get_db
 from app.acedemic.assignments.service import AssignmentService
-from app.acedemic.assignments.scheamas import (
+from app.acedemic.assignments.schemas import (
     AssignmentCreate,
     AssignmentUpdate,
-    AssignmentResponse,
     AssignmentDetailResponse,
     TeacherScheduleResponse
 )
 from app.core.dependencies import (
-    get_current_user,
     admin_required,
     teacher_required
 )
 
 router  = APIRouter()
-service = AssignmentService()
+
 
 
 # ─── ADMIN ──────────────────────────────────────────────────
@@ -27,8 +27,10 @@ service = AssignmentService()
 )
 async def create_assignment(
     data:         AssignmentCreate,
-    current_user: dict = Depends(admin_required)
-):
+    current_user: dict = Depends(admin_required),
+    conn:Connection=Depends(get_db)
+)-> dict:
+    service = AssignmentService(conn)
     return await service.create(data)
 
 
@@ -39,8 +41,10 @@ async def create_assignment(
     description    = "Admin ähli bellemeçileri görýär"
 )
 async def get_all_assignments(
-    current_user: dict = Depends(admin_required)
+    current_user: dict = Depends(admin_required),
+    conn:Connection=Depends(get_db)
 ):
+    service = AssignmentService(conn)
     return await service.get_all()
 
 
@@ -52,8 +56,11 @@ async def get_all_assignments(
 )
 async def get_assignment(
     id:           int,
-    current_user: dict = Depends(admin_required)
+    current_user: dict = Depends(admin_required),
+    conn:Connection=Depends(get_db)
+
 ):
+    service = AssignmentService(conn)
     return await service.get_by_id(id)
 
 
@@ -66,8 +73,10 @@ async def get_assignment(
 async def update_assignment(
     id:           int,
     data:         AssignmentUpdate,
-    current_user: dict = Depends(admin_required)
+    current_user: dict = Depends(admin_required),
+    conn:Connection=Depends(get_db)
 ):
+    service = AssignmentService(conn)
     return await service.update(id, data)
 
 
@@ -78,8 +87,10 @@ async def update_assignment(
 )
 async def delete_assignment(
     id:           int,
-    current_user: dict = Depends(admin_required)
+    current_user: dict = Depends(admin_required),
+    conn:Connection=Depends(get_db)
 ):
+    service = AssignmentService(conn)
     return await service.delete(id)
 
 
@@ -91,8 +102,10 @@ async def delete_assignment(
 )
 async def get_by_semester(
     semester:     str,
-    current_user: dict = Depends(admin_required)
+    current_user: dict = Depends(admin_required),
+    conn:Connection=Depends(get_db)
 ):
+    service = AssignmentService(conn)
     return await service.get_by_semester(semester)
 
 
@@ -104,8 +117,10 @@ async def get_by_semester(
 )
 async def get_by_group(
     group_id:     int,
-    current_user: dict = Depends(admin_required)
+    current_user: dict = Depends(admin_required),
+    conn:Connection=Depends(get_db)
 ):
+    service = AssignmentService(conn)
     return await service.get_by_group(group_id)
 
 
@@ -118,8 +133,10 @@ async def get_by_group(
     description    = "Mugallymyň ähli dersleri"
 )
 async def get_my_assignments(
-    current_user: dict = Depends(teacher_required)
+    current_user: dict = Depends(teacher_required),
+    conn:Connection=Depends(get_db)
 ):
+    service = AssignmentService(conn)
     return await service.get_by_teacher(
         current_user["id"]
     )
@@ -133,8 +150,10 @@ async def get_my_assignments(
 )
 async def get_my_assignments_by_semester(
     semester:     str,
-    current_user: dict = Depends(teacher_required)
+    current_user: dict = Depends(teacher_required),
+    conn:Connection=Depends(get_db)
 ):
+    service = AssignmentService(conn)
     return await service.get_by_teacher_semester(
         user_id  = current_user["id"],
         semester = semester
@@ -148,8 +167,10 @@ async def get_my_assignments_by_semester(
     description    = "Mugallymyň ähli dersleri + wagt tertibi"
 )
 async def get_my_schedule(
-    current_user: dict = Depends(teacher_required)
+    current_user: dict = Depends(teacher_required),
+    conn:Connection=Depends(get_db)
 ):
+    service = AssignmentService(conn)
     return await service.get_teacher_schedule(
         current_user["id"]
     )

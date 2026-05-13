@@ -1,17 +1,18 @@
-from app.core.database import get_db
-from .scheamas import (
+from aiomysql import DictCursor
+from app.acedemic.assignments.schemas import (
     AssignmentCreate,
     AssignmentUpdate
 )
 
 
 class AssignmentRepository:
+    def __init__(self, conn):
+        self.conn = conn
 
     # ─── CREATE ─────────────────────────────────────────────
 
     async def create(self, data: AssignmentCreate) -> dict:
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+            async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
                     INSERT INTO subject_assignments
                         (user_id, subject_id, group_id, semester)
@@ -23,15 +24,14 @@ class AssignmentRepository:
                     data.group_id,
                     data.semester.value
                 ))
-                await conn.commit()
+                await self.conn.commit()
                 return await self.get_by_id(cur.lastrowid)
 
 
     # ─── GET ALL ─────────────────────────────────────────────
 
     async def get_all(self) -> list[dict]:
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+            async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
                     SELECT
                         sa.id,
@@ -47,14 +47,14 @@ class AssignmentRepository:
                     JOIN subjects  s ON s.id = sa.subject_id
                     JOIN student_group g ON g.id = sa.group_id
                 """)
-                return await cur.fetchall()
+                result= await cur.fetchall()
+                return result
 
 
     # ─── GET BY ID ───────────────────────────────────────────
 
     async def get_by_id(self, id: int) -> dict | None:
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+       async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
                     SELECT
                         sa.id,
@@ -77,8 +77,7 @@ class AssignmentRepository:
     # ─── GET BY SEMESTER ─────────────────────────────────────
 
     async def get_by_semester(self, semester: str) -> list[dict]:
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+       async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
                     SELECT
                         sa.id,
@@ -101,8 +100,7 @@ class AssignmentRepository:
     # ─── GET BY GROUP ─────────────────────────────────────────
 
     async def get_by_group(self, group_id: int) -> list[dict]:
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+       async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
                     SELECT
                         sa.id,
@@ -125,8 +123,7 @@ class AssignmentRepository:
     # ─── GET BY TEACHER ───────────────────────────────────────
 
     async def get_by_teacher(self, user_id: int) -> list[dict]:
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+       async with self.conn.cursor() as cur:
                 await cur.execute("""
                     SELECT
                         sa.id,
@@ -153,8 +150,7 @@ class AssignmentRepository:
         user_id: int,
         semester: str
     ) -> list[dict]:
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+        async with self.conn.cursor() as cur:
                 await cur.execute("""
                     SELECT
                         sa.id,
@@ -178,8 +174,7 @@ class AssignmentRepository:
     # ─── GET TEACHER SCHEDULE (Timetable bilen) ───────────────
 
     async def get_teacher_schedule(self, user_id: int) -> list[dict]:
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+        async with self.conn.cursor() as cur:
                 await cur.execute("""
                     SELECT
                         sa.id          AS assignment_id,
@@ -234,27 +229,25 @@ class AssignmentRepository:
 
         values.append(id)
 
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+        async with self.conn.cursor() as cur:
                 await cur.execute(f"""
                     UPDATE subject_assignments
                     SET {', '.join(fields)}
                     WHERE id = %s
                 """, values)
-                await conn.commit()
+                await self.conn.commit()
                 return await self.get_by_id(id)
 
 
     # ─── DELETE ──────────────────────────────────────────────
 
     async def delete(self, id: int) -> bool:
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+        async with self.conn.cursor() as cur:
                 await cur.execute("""
                     DELETE FROM subject_assignments
                     WHERE id = %s
                 """, (id,))
-                await conn.commit()
+                await self.conn.commit()
                 return cur.rowcount > 0
 
 
@@ -268,8 +261,7 @@ class AssignmentRepository:
         semester: str,
         exclude_id: int = None
     ) -> bool:
-        async with get_db() as conn:
-            async with conn.cursor() as cur:
+       async with self.conn.cursor() as cur:
                 query = """
                     SELECT id FROM subject_assignments
                     WHERE user_id    = %s
