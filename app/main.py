@@ -8,6 +8,7 @@ from app.users.router import router as user_router
 from app.auth.router import router as auth_router
 from app.acedemic.subjects.router import router as subject_router
 from app.acedemic.assignments.router import router as assignment_router
+from app.acedemic.timetable.router import router as timetable_router
 
 
 
@@ -21,16 +22,45 @@ async def lifespan(app:FastAPI):
 
 app=FastAPI(title="University System",lifespan=lifespan)
 
-app.include_router(faculty_router)   
-app.include_router(department_router)    
-app.include_router(group_router) 
-app.include_router(user_router)
-app.include_router(auth_router)
-app.include_router(subject_router)
+app.include_router(
+    faculty_router,
+    prefix = "/University_system/v1/faculties",
+    tags   = ["Faculties"]
+    )   
+app.include_router(
+    department_router,
+    prefix = "/University_system/v1/departments",
+    tags   = ["Departments"]
+)
+app.include_router(
+    group_router,
+    prefix = "/University_system/v1/groups",
+    tags   = ["Groups"]
+)
+app.include_router(
+    user_router,
+    prefix = "/University_system/v1/users",
+    tags   = ["Users"]
+)
+app.include_router(
+    auth_router,
+    prefix = "/University_system/v1/auth",
+    tags   = ["Auth"]
+)
+app.include_router(
+    subject_router,
+    prefix = "/University_system/v1/subjects",
+    tags   = ["Subjects"]
+)
 app.include_router(
     assignment_router,
-    prefix = "/api/v1/assignments",
+    prefix = "/University_system/v1/assignments",
     tags   = ["Assignments"]
+)
+app.include_router(
+    timetable_router,
+    prefix = "/University_system/v1/timetables",
+    tags   = ["Timetables"]
 )
 
 

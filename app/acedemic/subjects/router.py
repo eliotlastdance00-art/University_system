@@ -18,7 +18,7 @@ router=APIRouter(
 async def post_subject(
     data:SubjectCreate,
     conn:Connection=Depends(get_db)
-):
+)-> dict:
     return await service.create_subject(conn,data)
 
 
@@ -41,7 +41,7 @@ async def get_department_subjects(
 async def get_subject(
     subject_id: int,
     conn: Connection = Depends(get_db)
-):
+)-> dict:
     return await service.get_subject_id(conn, subject_id)
 
 # Üýtget
