@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
-from app.acedemic.assignments.repository import AssignmentRepository
-from app.acedemic.assignments.schemas import (
+from app.academic.assignments.repository import AssignmentRepository
+from app.academic.assignments.schemas import (
     AssignmentCreate,
     AssignmentUpdate
 )

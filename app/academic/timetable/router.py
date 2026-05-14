@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends
+from typing import List
 from aiomysql import Connection
 from app.core.database import get_db
-from app.acedemic.timetable.service import TimetableService
-from app.acedemic.timetable.schemas import (
+from app.academic.timetable.service import TimetableService
+from app.academic.timetable.schemas import (
     TimetableCreate,
     TimetableDetailResponse,
     TimetableResponse,
     TimetableUpdate,
-    TimetableEnum
+    TimetableEnum,
+    GroupResponse
     
 )
 from app.core.dependencies import (
@@ -23,7 +25,7 @@ router  = APIRouter()
 
 @router.post(
     "",
-    response_model = TimetableDetailResponse,
+    response_model = TimetableResponse,
     summary        = "Create timetable",
     description    = "Admin or department head can create timetable"
 )
@@ -31,21 +33,21 @@ async def create_timetable(
     data:         TimetableCreate,
     current_user: dict = Depends(admin_required),
     conn:Connection=Depends(get_db)
-):
+)->dict:
     service = TimetableService(conn)
     return await service.create(data)
 
 
 @router.get(
     "",
-    response_model=TimetableDetailResponse,
+    response_model=List[TimetableDetailResponse],
     summary="Get all timetables",
     description="Only admin can see all timetables"
 )
 async def get_all_timetables(
     current_user: dict = Depends(admin_required),
     conn:Connection=Depends(get_db)
-):
+)->dict:
     service = TimetableService(conn)
     return await service.get_all() 
 
@@ -53,7 +55,7 @@ async def get_all_timetables(
 
 @router.get(
     "/group/{group_id}",
-    response_model=TimetableResponse,
+    response_model=List[TimetableResponse],
     summary="Get group  week timetable",
     description="Student for week timetable"
 )
@@ -61,7 +63,7 @@ async def get_group_timetable_week(
     group_id: int,
     current_user: dict = Depends(admin_required),
     conn:Connection=Depends(get_db)
-):
+)->dict:
     service = TimetableService(conn)
     return await service.get_group(group_id)            
 
@@ -70,7 +72,7 @@ async def get_group_timetable_week(
 
 @router.get(
     "/group/{group_id}/day/{day}",
-    response_model=TimetableResponse,
+    response_model=List[GroupResponse],
     summary="Get group day timetable",
     description="Student for timetable"
 )
@@ -79,7 +81,7 @@ async def get_group_day_timetable(
     group_id: int,
     current_user: dict = Depends(admin_required),
     conn:Connection=Depends(get_db)
-):
+)->list[dict]:
     service = TimetableService(conn)
     return await service.get_day_group(day, group_id)
 

@@ -6,13 +6,7 @@ from .schemas import UserCreate, UserUpdate, UserResponse,UserRoleCreate
 from app.core.database import get_db
 from app.core.dependencies import admin_required
 
-router = APIRouter(
-    prefix="/users",
-    tags=["Users"],
-    dependencies=[Depends(admin_required)]
-    
-   
-)
+router = APIRouter()
 
 
 # ╔══════════════════════════════════════╗

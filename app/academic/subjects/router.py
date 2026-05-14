@@ -6,11 +6,7 @@ from  app.core.database import get_db
 
 
 
-router=APIRouter(
-    prefix="/subjects",
-    tags=["SUBJECTS"]
-
-)
+router=APIRouter()
 
 
 
@@ -52,3 +48,6 @@ async def update_subject(
     conn: Connection = Depends(get_db)
 ):
     return await service.update_subject(conn, data, subject_id)
+
+
+

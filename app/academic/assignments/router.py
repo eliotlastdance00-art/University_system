@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from aiomysql import Connection
 from app.core.database import get_db
-from app.acedemic.assignments.service import AssignmentService
-from app.acedemic.assignments.schemas import (
+from app.academic.assignments.service import AssignmentService
+from app.academic.assignments.schemas import (
     AssignmentCreate,
     AssignmentUpdate,
     AssignmentDetailResponse,

@@ -60,3 +60,26 @@ async def teacher_required(
             detail="Just only exit teacher"
         )
     return current_user
+
+
+async def admin_or_student(
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user["role"] not in ["admin", "student"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Unauthorized"
+        )
+    return current_user
+
+
+
+async def admin_or_teacher(
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user["role"] not in ["admin", "teacher"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Unauthorized"
+        )
+    return current_user

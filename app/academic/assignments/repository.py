@@ -1,5 +1,5 @@
 from aiomysql import DictCursor
-from app.acedemic.assignments.schemas import (
+from app.academic.assignments.schemas import (
     AssignmentCreate,
     AssignmentUpdate
 )
@@ -34,7 +34,7 @@ class AssignmentRepository:
             async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
                     SELECT
-                        sa.id,
+                        sa.id ,
                         sa.semester,
                         sa.user_id    AS teacher_id,
                         u.full_name   AS teacher_name,
