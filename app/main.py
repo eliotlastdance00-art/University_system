@@ -6,9 +6,12 @@ from app.department.router import router as department_router
 from app.groups.router import router as group_router
 from app.users.router import router as user_router
 from app.auth.router import router as auth_router
-from app.acedemic.subjects.router import router as subject_router
-from app.acedemic.assignments.router import router as assignment_router
-from app.acedemic.timetable.router import router as timetable_router
+from app.academic.subjects.router import router as subject_router
+from app.academic.assignments.router import router as assignment_router
+from app.academic.timetable.router import router as timetable_router
+from app.academic.lessons.router import router as lesson_router
+from app.academic.attendance.router import router as attendance_router
+
 
 
 
@@ -61,6 +64,17 @@ app.include_router(
     timetable_router,
     prefix = "/University_system/v1/timetables",
     tags   = ["Timetables"]
+)
+
+app.include_router(
+    lesson_router,
+    prefix = "/University_system/v1/lessons",
+    tags   = ["Lessons"]
+)
+app.include_router(
+    attendance_router,
+    prefix = "/University_system/v1/attendance",
+    tags   = ["Attendance"]
 )
 
 

@@ -86,3 +86,7 @@ async def get_name_subjects(conn: Connection,name:str,department_id:int):
     return await cursor.fetchone()
 
 
+
+
+
+

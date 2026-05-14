@@ -4,11 +4,7 @@ from . import service
 from .schemas import FacultyCreate,FacultyResponse,FacultyUpdate
 from  app.core.database import get_db
 
-router=APIRouter(
-    prefix="/faculties",
-    tags=["Faculty"]
-
-)
+router=APIRouter()
 
 
 @router.post("/",response_model=dict)

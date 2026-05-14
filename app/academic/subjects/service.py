@@ -86,3 +86,6 @@ async def get_subject_id(conn,subject_id:int):
             detail="Not found subject"
         )
     return subject
+
+
+

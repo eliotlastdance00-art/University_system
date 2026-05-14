@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
-from app.acedemic.timetable.repository import TimetableRepository
-from app.acedemic.timetable.schemas import TimetableCreate, TimetableUpdate,TimetableEnum
-from app.acedemic.assignments.repository import AssignmentRepository
+from app.academic.timetable.repository import TimetableRepository
+from app.academic.timetable.schemas import TimetableCreate, TimetableUpdate,TimetableEnum
+from app.academic.assignments.repository import AssignmentRepository
 
 
 
@@ -57,9 +57,22 @@ class TimetableService:
                 detail      = "Not found assignment"
             )
         await self.check_time(data.start_time, data.end_time)
-        await self.check_teacher_conflict(assignment["user_id"], data.day, data.start_time, None)
-        await self._check_duplicate(data.assignment_id, data.day, data.start_time, None)
+        await self._check_duplicate(
+            assignment_id=data.assignment_id,
+            day=data.day.value,
+            start_time=str(data.start_time),
+            exclude_id=None
+                )
+        
+        await self.check_teacher_conflict(
+            user_id=assignment["teacher_id"], 
+            day=data.day.value,
+            start_time=str(data.start_time),
+            exclude_id=None
+        )
+       
         return await self.repo.create(data)
+        
 
     async def get_all(self) -> list[dict]:
         all= await self.repo.get_all()
@@ -68,7 +81,7 @@ class TimetableService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Timetable is empty"
             )
-        return await all
+        return  all
     
 
     async def get_by_id(self,id:int)->dict:

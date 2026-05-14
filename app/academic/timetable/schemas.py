@@ -34,6 +34,8 @@ class TimetableBase(BaseModel):
     )
     
     room: str = Field(..., min_length=1, description="Room number or name")
+    model_config = ConfigDict(from_attributes=True)
+
 
 # ─── CREATE ─────────────────────────────────────
 
@@ -53,6 +55,7 @@ class TimetableUpdate(BaseModel):
 
 class TimetableResponse(TimetableBase):
     id: int
+    
     model_config = ConfigDict(from_attributes=True)
 
 # ─── DETAIL RESPONSE (JOIN) ─────────────────────
@@ -78,3 +81,24 @@ class TimetableDetailResponse(BaseModel):
     
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+class GroupResponse(BaseModel):
+    assignment_id: int = Field(..., gt=0, description="Assignment id")
+    day: TimetableEnum = Field(..., description="Week days")
+    start_time: time = Field(
+        ..., 
+        description="Lesson start time", 
+        json_schema_extra={"example": "09:00:00"}
+    )
+    end_time: time = Field(
+        ..., 
+        description="Lesson end time", 
+        json_schema_extra={"example": "10:30:00"}
+    )
+    
+    room: str = Field(..., min_length=1, description="Room number or name")
+    model_config = ConfigDict(from_attributes=True)
+    teacher_name:str
+    group_name:str

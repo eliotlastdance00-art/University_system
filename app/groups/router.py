@@ -4,7 +4,7 @@ from aiomysql import Connection
 from .schemas import GroupCreate, GroupResponse, GroupUpdate
 from app.core.database import get_db
 
-router = APIRouter(prefix="/groups", tags=["GROUPS"])
+router = APIRouter()
 
 
 @router.post("/", response_model=dict)

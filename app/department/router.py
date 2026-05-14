@@ -4,7 +4,7 @@ from . import service
 from .schemas import DepartmentCreate,DepartmentResponse,DepartmentUpdate
 from  app.core.database import get_db
 
-router=APIRouter(prefix="/department",tags=["DEPARTMENT"])
+router=APIRouter()
 
 
 @router.get("/{faculty_id}",response_model=list[DepartmentResponse])
