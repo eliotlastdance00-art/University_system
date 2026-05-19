@@ -25,3 +25,14 @@ class DepartmentResponse(BaseModel):
 
 
     
+class DepartmentSchema(BaseModel):
+    last_id: int = 0
+    limit: int = 10
+
+
+
+# schemas.py
+class DepartmentPaginationResponse(BaseModel):
+    items: list[DepartmentResponse]
+    next_id: int | None  # Bir sonraki istekte kullanılacak last_id
+    has_more: bool       # Daha fazla veri var mı?

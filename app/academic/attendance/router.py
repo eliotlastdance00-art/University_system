@@ -131,16 +131,16 @@ async def get_student_stats(
 
 
 @router.get(
-    "/group/{group_id}/stats",
+    "/group/{section_id}/stats",
     response_model = list,
     summary = "Toparyň gatnaw statistikasy",
     description = "Ähli studentleriň gatnawy "
                      "göterim boýunça"
 )
 async def get_group_stats(
-    group_id: int,
+    section_id: int,
     current_user: dict = Depends(admin_required),
     conn:Connection=Depends(get_db)
 ):
     service = AttendanceService(conn)
-    return await service.get_group_stats(group_id)
+    return await service.get_group_stats(section_id)

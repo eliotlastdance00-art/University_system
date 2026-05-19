@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 from app.core.database import pool_create,close_pool
 from app.faculty.router import router as faculty_router
 from app.department.router import router as department_router
-from app.groups.router import router as group_router
 from app.users.router import router as user_router
 from app.auth.router import router as auth_router
 from app.academic.subjects.router import router as subject_router
@@ -25,6 +24,12 @@ async def lifespan(app:FastAPI):
 
 app=FastAPI(title="University System",lifespan=lifespan)
 
+
+app.include_router(
+    auth_router,
+    prefix = "/University_system/v1/auth",
+    tags   = ["Auth"]
+)
 app.include_router(
     faculty_router,
     prefix = "/University_system/v1/faculties",
@@ -35,21 +40,13 @@ app.include_router(
     prefix = "/University_system/v1/departments",
     tags   = ["Departments"]
 )
-app.include_router(
-    group_router,
-    prefix = "/University_system/v1/groups",
-    tags   = ["Groups"]
-)
+
 app.include_router(
     user_router,
     prefix = "/University_system/v1/users",
     tags   = ["Users"]
 )
-app.include_router(
-    auth_router,
-    prefix = "/University_system/v1/auth",
-    tags   = ["Auth"]
-)
+
 app.include_router(
     subject_router,
     prefix = "/University_system/v1/subjects",

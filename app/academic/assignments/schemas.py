@@ -15,7 +15,7 @@ class SemesterEnum(str, Enum):
 class AssignmentBase(BaseModel):
     user_id:    int = Field(..., gt=0, description="Mugallymyň ID-si")
     subject_id: int = Field(..., gt=0, description="Dersiň ID-si")
-    group_id:   int = Field(..., gt=0, description="Toparyň ID-si")
+    section_id:   int = Field(..., gt=0, description="Toparyň ID-si")
     semester:   SemesterEnum         = Field(..., description="Semester 1 ýa 2")
 
 
@@ -30,7 +30,7 @@ class AssignmentCreate(AssignmentBase):
 class AssignmentUpdate(BaseModel):
     user_id:    Optional[int]          = Field(None, gt=0)
     subject_id: Optional[int]          = Field(None, gt=0)
-    group_id:   Optional[int]          = Field(None, gt=0)
+    section_id:   Optional[int]          = Field(None, gt=0)
     semester:   Optional[SemesterEnum] = None
 
 
@@ -58,7 +58,7 @@ class AssignmentDetailResponse(BaseModel):
     subject_name: str
 
     # Topar
-    group_id:     int
+    section_id:     int
     group_name:   str
 
     class Config:

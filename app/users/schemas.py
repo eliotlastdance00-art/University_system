@@ -24,4 +24,5 @@ class UserRoleCreate(BaseModel):
     role_id:int
     faculty_id:int | None=None
     department_id:int |None=None
-    group_id:int |None=None    
+    section_id: int | None = None
+    

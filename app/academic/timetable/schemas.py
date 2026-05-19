@@ -75,7 +75,7 @@ class TimetableDetailResponse(BaseModel):
     subject_name:str
 
     #Group
-    group_id:int
+    section_id:int
     group_name:str
 
     

@@ -20,7 +20,7 @@ class AssignmentService:
         already_exists = await self.repo.exists(
             user_id    = data.user_id,
             subject_id = data.subject_id,
-            group_id   = data.group_id,
+            section_id   = data.section_id,
             semester   = data.semester.value
         )
         if already_exists:
@@ -71,12 +71,12 @@ class AssignmentService:
 
     # ─── GET BY GROUP ────────────────────────────────────────
 
-    async def get_by_group(self, group_id: int) -> list[dict]:
-        result = await self.repo.get_by_group(group_id)
+    async def get_by_group(self, section_id: int) -> list[dict]:
+        result = await self.repo.get_by_group(section_id)
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
-                detail      = f"Topar ID={group_id} üçin "
+                detail      = f"Topar ID={section_id} üçin "
                               f"hiç hili bellenme tapylmady"
             )
         return result
@@ -140,20 +140,20 @@ class AssignmentService:
         if any([
             data.user_id,
             data.subject_id,
-            data.group_id,
+            data.section_id,
             data.semester
         ]):
             current     = await self.get_by_id(id)
             user_id     = data.user_id    or current["teacher_id"]
             subject_id  = data.subject_id or current["subject_id"]
-            group_id    = data.group_id   or current["group_id"]
+            section_id    = data.section_id   or current["section_id"]
             semester    = data.semester.value if data.semester \
                           else current["semester"]
 
             already_exists = await self.repo.exists(
                 user_id    = user_id,
                 subject_id = subject_id,
-                group_id   = group_id,
+                section_id   = section_id,
                 semester   = semester,
                 exclude_id = id
             )

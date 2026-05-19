@@ -15,13 +15,13 @@ class AssignmentRepository:
             async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
                     INSERT INTO subject_assignments
-                        (user_id, subject_id, group_id, semester)
+                        (user_id, subject_id, section_id, semester)
                     VALUES
                         (%s, %s, %s, %s)
                 """, (
                     data.user_id,
                     data.subject_id,
-                    data.group_id,
+                    data.section_id,
                     data.semester.value
                 ))
                 await self.conn.commit()
@@ -40,12 +40,12 @@ class AssignmentRepository:
                         u.full_name   AS teacher_name,
                         sa.subject_id,
                         s.name        AS subject_name,
-                        sa.group_id,
+                        sa.section_id,
                         g.name        AS group_name
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                 """)
                 result= await cur.fetchall()
                 return result
@@ -63,12 +63,12 @@ class AssignmentRepository:
                         u.full_name   AS teacher_name,
                         sa.subject_id,
                         s.name        AS subject_name,
-                        sa.group_id,
+                        sa.section_id,
                         g.name        AS group_name
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     WHERE sa.id = %s
                 """, (id,))
                 return await cur.fetchone()
@@ -86,12 +86,12 @@ class AssignmentRepository:
                         u.full_name   AS teacher_name,
                         sa.subject_id,
                         s.name        AS subject_name,
-                        sa.group_id,
+                        sa.section_id,
                         g.name        AS group_name
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     WHERE sa.semester = %s
                 """, (semester,))
                 return await cur.fetchall()
@@ -99,7 +99,7 @@ class AssignmentRepository:
 
     # ─── GET BY GROUP ─────────────────────────────────────────
 
-    async def get_by_group(self, group_id: int) -> list[dict]:
+    async def get_by_group(self, section_id: int) -> list[dict]:
        async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
                     SELECT
@@ -109,14 +109,14 @@ class AssignmentRepository:
                         u.full_name   AS teacher_name,
                         sa.subject_id,
                         s.name        AS subject_name,
-                        sa.group_id,
+                        sa.section_id,
                         g.name        AS group_name
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
-                    WHERE sa.group_id = %s
-                """, (group_id,))
+                    JOIN sections g ON g.id = sa.section_id
+                    WHERE sa.section_id = %s
+                """, (section_id,))
                 return await cur.fetchall()
 
 
@@ -132,12 +132,12 @@ class AssignmentRepository:
                         u.full_name   AS teacher_name,
                         sa.subject_id,
                         s.name        AS subject_name,
-                        sa.group_id,
+                        sa.section_id,
                         g.name        AS group_name
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     WHERE sa.user_id = %s
                 """, (user_id,))
                 return await cur.fetchall()
@@ -159,12 +159,12 @@ class AssignmentRepository:
                         u.full_name   AS teacher_name,
                         sa.subject_id,
                         s.name        AS subject_name,
-                        sa.group_id,
+                        sa.section_id,
                         g.name        AS group_name
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     WHERE sa.user_id  = %s
                       AND sa.semester = %s
                 """, (user_id, semester))
@@ -189,7 +189,7 @@ class AssignmentRepository:
                     FROM subject_assignments sa
                     JOIN users         u ON u.id = sa.user_id
                     JOIN subjects      s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     LEFT JOIN timetable t ON t.assignment_id = sa.id
                     WHERE sa.user_id = %s
                     ORDER BY
@@ -217,9 +217,9 @@ class AssignmentRepository:
         if data.subject_id is not None:
             fields.append("subject_id = %s")
             values.append(data.subject_id)
-        if data.group_id is not None:
-            fields.append("group_id = %s")
-            values.append(data.group_id)
+        if data.section_id is not None:
+            fields.append("section_id = %s")
+            values.append(data.section_id)
         if data.semester is not None:
             fields.append("semester = %s")
             values.append(data.semester.value)
@@ -257,7 +257,7 @@ class AssignmentRepository:
         self,
         user_id: int,
         subject_id: int,
-        group_id: int,
+        section_id: int,
         semester: str,
         exclude_id: int = None
     ) -> bool:
@@ -266,10 +266,10 @@ class AssignmentRepository:
                     SELECT id FROM subject_assignments
                     WHERE user_id    = %s
                       AND subject_id = %s
-                      AND group_id   = %s
+                      AND section_id   = %s
                       AND semester   = %s
                 """
-                params = [user_id, subject_id, group_id, semester]
+                params = [user_id, subject_id, section_id, semester]
 
                 if exclude_id:
                     query += " AND id != %s"

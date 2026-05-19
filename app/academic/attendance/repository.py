@@ -26,8 +26,8 @@ class AttendanceRepository:
                          ON t.id = l.timetable_id
                     JOIN subject_assignments sa
                          ON sa.id = t.assignment_id
-                    JOIN student_group sg
-                         ON sg.id = sa.group_id
+                    JOIN sections sg
+                         ON sg.id = sa.section_id
                     JOIN user_roles ur
                          ON ur.role_id = 3
                     JOIN users u
@@ -135,7 +135,7 @@ class AttendanceRepository:
                     JOIN subject_assignments sa
                          ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     WHERE a.user_id = %s
                     ORDER BY l.date DESC
                 """, (student_id,))
@@ -168,7 +168,7 @@ class AttendanceRepository:
 
     async def get_group_stats(
         self,
-        group_id: int
+        section_id: int
     ) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
@@ -188,10 +188,10 @@ class AttendanceRepository:
                     JOIN timetable t ON t.id = l.timetable_id
                     JOIN subject_assignments sa
                          ON sa.id = t.assignment_id
-                    WHERE sa.group_id = %s
+                    WHERE sa.section_id = %s
                     GROUP BY u.id, u.full_name
                     ORDER BY percentage ASC
-                """, (group_id,))
+                """, (section_id,))
                 return await cur.fetchall()
 
 

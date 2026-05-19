@@ -3,9 +3,9 @@ from  aiomysql import Connection,DictCursor
 from app.department.schemas import DepartmentUpdate
 
 
-#---------------Get all department------------
+#---------------Get all department-faculty------------
 
-async def get_all_department(conn:Connection,faculty_id:int):
+async def get_all_department_faculty(conn:Connection,faculty_id:int):
     sql="""
        SELECT d.id,
        d.name,
@@ -21,8 +21,22 @@ async def get_all_department(conn:Connection,faculty_id:int):
     return result
 
 
-
-
+async def get_departments_incrementally(conn, last_id: int = 0, limit: int = 10)->list[dict]:
+    query = """
+        SELECT d.id,
+        d.name,
+        d.faculty_id,
+        f.name AS faculty_name
+        FROM departments d
+        JOIN faculties f ON d.faculty_id=f.id
+        WHERE d.id > %s 
+        ORDER BY d.id ASC 
+        LIMIT %s
+    """
+    async with conn.cursor(DictCursor) as cursor:
+        await cursor.execute(query,(last_id,limit))
+        result=await cursor.fetchall()
+        return result    
 #-----------------GET {id}-----------------------
 
 async def get_department_by_id(conn:Connection,department_id:int):

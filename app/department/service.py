@@ -50,12 +50,30 @@ async def department_delete(conn,department_id:int):
 
 
 
-#GET ALL DEPARTMENTS
-async def department_all(conn,faculty_id:int):
-    existing=await repository.get_all_department(conn,faculty_id)
+#GET ALL DEPARTMENTS Faculty
+async def department_all_faculty(conn,faculty_id:int):
+    existing=await repository.get_all_department_faculty(conn,faculty_id)
     if not existing:
         return []
     return existing
+
+
+
+#GET ALL reel
+async def department_incremental(conn, last_id: int = 0, limit: int = 10):
+    existing = await repository.get_departments_incrementally(conn, last_id, limit)
+    
+    if not existing:
+        return {"items": [], "next_id": None, "has_more": False}
+
+    # Listenin en sonundaki elemanın ID'sini alıyoruz
+    last_fetched_id = existing[-1]["id"]
+    
+    return {
+        "items": existing,
+        "next_id": last_fetched_id,
+        "has_more": len(existing) == limit # Eğer gelen veri limitteyse devamı olabilir
+    }
 
 
 

@@ -53,13 +53,13 @@ class TimetableRepository:
                            u.full_name   AS teacher_name,
                            sa.subject_id,
                            s.name        AS subject_name,
-                           sa.group_id,
+                           sa.section_id,
                            g.name        AS group_name                              
                         FROM timetable t
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN student_group       g  ON g.id=sa.group_id
+                        JOIN sections       g  ON g.id=sa.section_id
                         ORDER BY
                                   FIELD(T.day,
                                   "monday","tuesday","wednesday",
@@ -90,7 +90,7 @@ class TimetableRepository:
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN student_group       g  ON g.id=sa.group_id
+                        JOIN sections       g  ON g.id=sa.section_id
                         WHERE t.id=%s                                                                                 
                                          
                 """,
@@ -100,7 +100,7 @@ class TimetableRepository:
 
     # ─── GET ALL GROUP WEEK  ─────────────────────────────────────────────
 
-    async def get_all_group_week(self, group_id: int) -> list[dict]:
+    async def get_all_group_week(self, section_id: int) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
@@ -119,21 +119,21 @@ class TimetableRepository:
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN student_group       g  ON g.id=sa.group_id
-                                  WHERE sa.group_id=%s  
+                        JOIN sections       g  ON g.id=sa.section_id
+                                  WHERE sa.section_id=%s  
                         ORDER BY
                                   FIELD(T.day,
                                   "monday","tuesday","wednesday",
                                   "thursday","friday","saturday"),
                                   t.start_time
                  """,
-                (group_id,),
+                (section_id,),
             )
             return await cur.fetchall()
 
     # ─── GET DAY GROUP   ─────────────────────────────────────────────
 
-    async def get_day_group(self, group_id: int, day: str) -> list[dict]:
+    async def get_day_group(self, section_id: int, day: str) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
@@ -152,13 +152,13 @@ class TimetableRepository:
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN student_group       g  ON g.id=sa.group_id
-                                  WHERE sa.group_id=%s AND  t.day=%s 
+                        JOIN sections       g  ON g.id=sa.section_id
+                                  WHERE sa.section_id=%s AND  t.day=%s 
                           ORDER BY t.start_time            
                                                                                                   
                                          
                 """,
-                (group_id, day),
+                (section_id, day),
             )
             return await cur.fetchall()
 
@@ -182,7 +182,7 @@ class TimetableRepository:
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN student_group       g  ON g.id=sa.group_id
+                        JOIN sections       g  ON g.id=sa.section_id
                                   WHERE   sa.user_id=%s          
                             ORDER BY
                                   FIELD(t.day,
@@ -215,7 +215,7 @@ class TimetableRepository:
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN student_group       g  ON g.id=sa.group_id
+                        JOIN sections       g  ON g.id=sa.section_id
                                   WHERE   sa.user_id=%s  AND t.day=%s
                                   ORDER BY t.start_time        
                             
@@ -298,7 +298,7 @@ class TimetableRepository:
                     JOIN subject_assignments sa
                          ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     WHERE sa.user_id = %s
                       AND t.day = %s
                       AND t.start_time = %s
