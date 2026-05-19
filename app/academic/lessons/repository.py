@@ -45,7 +45,7 @@ class LessonRepository:
                     JOIN subject_assignments sa
                          ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     WHERE l.id = %s
                 """, (id,))
@@ -72,7 +72,7 @@ class LessonRepository:
                     JOIN subject_assignments sa
                          ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     ORDER BY l.date DESC
                 """)
@@ -99,7 +99,7 @@ class LessonRepository:
                     JOIN subject_assignments sa
                          ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     WHERE l.date = %s
                     ORDER BY t.start_time
@@ -130,7 +130,7 @@ class LessonRepository:
                     JOIN subject_assignments sa
                          ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     WHERE l.timetable_id = %s
                     ORDER BY l.date DESC
@@ -161,7 +161,7 @@ class LessonRepository:
                     JOIN subject_assignments sa
                          ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN student_group g ON g.id = sa.group_id
+                    JOIN sections g ON g.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     WHERE sa.user_id = %s
                     ORDER BY l.date DESC

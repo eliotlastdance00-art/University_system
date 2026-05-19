@@ -1,159 +1,101 @@
-from . import repository
-from fastapi import HTTPException
-from .schemas import UserCreate,UserResponse,UserUpdate
+from fastapi import HTTPException, status
+from .repository import UsersRepository
+from .schemas import UserCreate, UserResponse, UserUpdate
 
 
+class UserService:
 
-# ╔══════════════════════════════════════╗
-# ║         USER DÖRETMEK                ║
-# ║  Email barmy? → 400                  ║
-# ║  Ýok → döret → response gaýtar       ║
-# ╚══════════════════════════════════════╝
-async def user_create(conn,data:UserCreate):
-    user= await repository.get_by_email_users(conn,data.email)
-    if user:
-        raise HTTPException(
-            status_code=400,
-            detail="That email already created"
-        )
-    if not data.password:
-        raise HTTPException(
-            status_code=400,
-            detail="Password is too short! It must be at least 8 characters long."
-        )
-    await repository.create_user(conn, data.full_name,data.email,data.password)
-    user= await repository.get_by_email_users(conn,data.email)
-    return UserResponse(**user)
+    def __init__(self, conn):
+        self.conn = conn
+        self.repo = UsersRepository(self.conn)
 
+    async def _get_or_404(self, user_id: int) -> dict:
+        """Kullanıcı varlığını kontrol eden ortak helper metot."""
+        user = await self.repo.get_by_id_users(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="Not found user"
+            )
+        return user
 
+    async def user_create(self, data: UserCreate) -> UserResponse:
+        existing_user = await self.repo.get_by_email_users(data.email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="That email already created"
+            )
+        
+        if not data.password or len(data.password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password is too short! It must be at least 8 characters long."
+            )
 
+        await self.repo.create_user(data.full_name, data.email, data.password)
+        created_user = await self.repo.get_by_email_users(data.email)
+        return UserResponse(**created_user)
 
-# ╔══════════════════════════════════════╗
-# ║         ÄHLI USERLERI GETIR          ║
-# ║  Barlag ýok → ählisini gaýtar        ║
-# ╚══════════════════════════════════════╝
-async def get_all(conn):
-    users=await repository.get_all_users(conn)
-    return [UserResponse(**u) for u in users]
+    async def get_all(self) -> list[UserResponse]:
+        users = await self.repo.get_all_users()
+        return [UserResponse(**u) for u in users]
 
+    async def get_user_by_id(self, user_id: int) -> UserResponse:
+        user = await self._get_or_404(user_id)
+        return UserResponse(**user)
 
+    async def update_user(self, user_id: int, data: UserUpdate) -> dict:
+        current_user = await self._get_or_404(user_id)
+        
+        # Gönderilmeyen alanlar için mevcut veriyi koru
+        new_full_name = data.full_name if data.full_name is not None else current_user["full_name"]
+        new_email     = data.email     if data.email     is not None else current_user["email"]
+        new_password  = data.password  if data.password  is not None else current_user["password"]
+        new_is_active = data.is_active if data.is_active is not None else current_user["is_active"]
 
+        await self.repo.update_user(user_id, new_full_name, new_email, new_password, new_is_active)
+        return {"message": "Changed user ✅"}
 
+    async def delete_user(self, user_id: int) -> dict:
+        await self._get_or_404(user_id)
+        await self.repo.delete_user(user_id)
+        return {"message": "Delete user ✅"}
 
-# ╔══════════════════════════════════════╗
-# ║         ID BOÝUNÇA GETIR             ║
-# ║  Ýok → 404                           ║
-# ║  Bar → response gaýtar               ║
-# ╚══════════════════════════════════════╝
-async def get_user_by_id(conn, user_id: int):
-    user = await repository.get_by_id_users(conn, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Not found user")
-    return UserResponse(**user)
+    async def give_role(self, user_id: int, role_id: int, faculty_id: int = None, department_id: int = None, section_id: int = None) -> dict:
+        await self._get_or_404(user_id)
+        
+        role = await self.repo.role_by_id(role_id)
+        if not role:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Not found ROLE"
+            )
 
+        existing_role = await self.repo.get_user_role(user_id, role_id)
+        if existing_role:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role already taken"
+            )
 
-# ╔══════════════════════════════════════╗
-# ║         USER UPDATE.                 ║
-# ║  Ýok → 404                           ║
-# ║  Iberilmedik → eskisi galýar         ║
-# ╚══════════════════════════════════════╝
-async def update_user(conn, user_id: int, data: UserUpdate):
-    user = await repository.get_by_id_users(conn, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Not found user")
-    new_full_name = data.full_name if data.full_name else user["full_name"]
-    new_email     = data.email     if data.email     else user["email"]
-    new_password  = data.password  if data.password  else user["password"]
-    new_is_active = data.is_active if data.is_active is not None else user["is_active"]
-    await repository.update_user(conn, user_id, new_full_name, new_email, new_password, new_is_active)
-    return {"message": "Changed user ✅"}
+        await self.repo.assign_role(user_id, role_id)
+        await self.repo.assign_profile(user_id, faculty_id, department_id, section_id)
+        return {"message": "Successfully given role"}
 
+    async def show_roles(self, user_id: int) -> list:
+        await self._get_or_404(user_id)
+        return await self.repo.get_user_roles_all(user_id)
 
-# ╔══════════════════════════════════════╗
-# ║         USER POZMAK                  ║
-# ║  Ýok → 404                           ║
-# ║  Bar → poz                           ║
-# ╚══════════════════════════════════════╝
-async def delete_user(conn, user_id: int):
-    user = await repository.get_user_by_id(conn, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Not found user")
-    await repository.delete_user(conn, user_id)
-    return {"message": "Delete user ✅"}
-
-
-
-
-# ╔══════════════════════════════════════╗
-# ║           Rol bermek                 ║
-# ║  Ýok → 404                           ║
-# ║  Bar → poz                           ║
-# ╚══════════════════════════════════════╝
-
-
-async def give_role(conn,user_id:int,role_id:int,faculty_id:int=None,department_id:int=None,group_id:int=None):
-    user= await repository.get_by_id_users(conn,user_id)
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="Not found user"
-        )
-    role= await repository.role_by_id(conn,role_id)
-    if not role:
-        raise HTTPException(
-            status_code=404,
-            detail="Not found ROlE"
-        )
-    existing_role= await repository.get_user_role(conn,user_id,role_id)
-    if existing_role:
-        raise HTTPException(
-            status_code=400,
-            detail="Role already taken"
-
-        )
-    await repository.assign_role(conn,user_id,role_id)
-    await repository.assign_profile(conn,user_id,faculty_id,department_id,group_id)
-    return {"message":"Succesfully given role"}
-    
-
-
-
-# ╔══════════════════════════════════════╗
-# ║           Rollary gormek             ║
-# ║  Ýok → 404                           ║
-# ║  Bar → poz                           ║
-# ╚══════════════════════════════════════╝
-
-async def show_roles(conn,user_id:int):
-    user= await repository.get_by_id_users(conn,user_id)
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="not found user"
-        )
-    return await repository.get_user_roles_all(conn,user_id)
-
-
-# ╔══════════════════════════════════════╗
-# ║           Remove Role.               ║
-# ║  Ýok → 404                           ║
-# ║  Bar → poz                           ║
-# ╚══════════════════════════════════════╝
-
-async def delete_role(conn,user_id:int,role_id:int):
-    user= await repository.get_by_id_users(conn,user_id)
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="not found user"
-        )
-    existing_role= await repository.get_user_role(conn,user_id,role_id)
-    if   existing_role:
-        raise HTTPException(
-            status_code=400,
-            detail="Role bar"
-
-        )
-    return await repository.remove_role(conn,user_id,role_id)
-
-
+    async def delete_role(self, user_id: int, role_id: int) -> dict:
+        await self._get_or_404(user_id)
+        
+        existing_role = await self.repo.get_user_role(user_id, role_id)
+        if not existing_role:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User does not have this role"
+            )
+            
+        await self.repo.remove_role(user_id, role_id)
+        return {"message": "Role successfully removed"}

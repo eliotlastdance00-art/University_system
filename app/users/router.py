@@ -1,92 +1,138 @@
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from aiomysql import Connection
-from . import service
-from .schemas import UserCreate, UserUpdate, UserResponse,UserRoleCreate
 from app.core.database import get_db
 from app.core.dependencies import admin_required
+
+from .service import UserService
+from .schemas import UserCreate, UserUpdate, UserResponse, UserRoleCreate
 
 router = APIRouter()
 
 
-# ╔══════════════════════════════════════╗
-# ║         USER DÖRETMEK                ║
-# ║  POST /users                         ║
-# ╚══════════════════════════════════════╝
-@router.post("/", response_model=UserResponse)
+@router.post(
+    "",
+    response_model = UserResponse,
+    status_code    = status.HTTP_201_CREATED,
+    summary        = "Create user",
+    description    = "Register a new user. Email must be unique and password at least 8 characters."
+)
 async def create_user(
-    data: UserCreate,
-    conn: Connection = Depends(get_db)
-):
-    return await service.user_create(conn, data)
+    data:         UserCreate,
+    current_user: dict       = Depends(admin_required),
+    conn:         Connection = Depends(get_db)
+) -> UserResponse:
+    service = UserService(conn)
+    return await service.user_create(data)
 
 
-# ╔══════════════════════════════════════╗
-# ║         ÄHLI USERLERI GETIR          ║
-# ║  GET /users                          ║
-# ╚══════════════════════════════════════╝
-@router.get("/", response_model=list[UserResponse])
+@router.get(
+    "",
+    response_model = list[UserResponse],
+    summary        = "Get all users",
+    description    = "Retrieve a list of all registered users in the system."
+)
 async def get_all_users(
-    conn: Connection = Depends(get_db)
-):
-    return await service.get_all(conn)
+    current_user: dict       = Depends(admin_required),
+    conn:         Connection = Depends(get_db)
+) -> list[UserResponse]:
+    service = UserService(conn)
+    return await service.get_all()
 
 
-# ╔══════════════════════════════════════╗
-# ║         ID BOÝUNÇA GETIR             ║
-# ║  GET /users/{user_id}                ║
-# ╚══════════════════════════════════════╝
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get(
+    "/{user_id}",
+    response_model = UserResponse,
+    summary        = "Get user by ID",
+    description    = "Fetch details of a specific user using their unique ID."
+)
 async def get_user(
-    user_id: int,
-    conn: Connection = Depends(get_db)
-):
-    return await service.get_user_by_id(conn, user_id)
+    user_id:      int,
+    current_user: dict       = Depends(admin_required),
+    conn:         Connection = Depends(get_db)
+) -> UserResponse:
+    service = UserService(conn)
+    return await service.get_user_by_id(user_id)
 
 
-# ╔══════════════════════════════════════╗
-# ║         USER ÜÝTGETMEK               ║
-# ║  PUT /users/{user_id}                ║
-# ╚══════════════════════════════════════╝
-@router.put("/{user_id}", response_model=dict)
+@router.put(
+    "/{user_id}",
+    response_model = dict,
+    summary        = "Update user",
+    description    = "Update user fields. Keeps original values if fields are omitted in request."
+)
 async def update_user(
-    user_id: int,
-    data: UserUpdate,
-    conn: Connection = Depends(get_db)
-):
-    return await service.update_user(conn, user_id, data)
+    user_id:      int,
+    data:         UserUpdate,
+    current_user: dict       = Depends(admin_required),
+    conn:         Connection = Depends(get_db)
+) -> dict:
+    service = UserService(conn)
+    return await service.update_user(user_id, data)
 
 
-# ╔══════════════════════════════════════╗
-# ║         USER POZMAK                  ║
-# ║  DELETE /users/{user_id}             ║
-# ╚══════════════════════════════════════╝
-@router.delete("/{user_id}", response_model=dict)
+@router.delete(
+    "/{user_id}",
+    response_model = dict,
+    summary        = "Delete user",
+    description    = "Permanently remove a user account from the database."
+)
 async def delete_user(
-    user_id: int,
-    conn: Connection = Depends(get_db)
-):
-    return await service.delete_user(conn, user_id)
+    user_id:      int,
+    current_user: dict       = Depends(admin_required),
+    conn:         Connection = Depends(get_db)
+) -> dict:
+    service = UserService(conn)
+    return await service.delete_user(user_id)
 
 
-
-
-@router.post("/{user_id}/roles")
+@router.post(
+    "/{user_id}/roles",
+    response_model = dict,
+    summary        = "Assign role to user",
+    description    = "Assign a specific role and link academic structural IDs (faculty, department, section)."
+)
 async def post_role(
-    data:UserRoleCreate,
-    conn:Connection = Depends(get_db)
-):
-    return await service.give_role(conn,data.user_id,data.role_id,data.faculty_id,data.department_id,data.group_id)
+    user_id:      int,
+    data:         UserRoleCreate,
+    current_user: dict       = Depends(admin_required),
+    conn:         Connection = Depends(get_db)
+) -> dict:
+    service = UserService(conn)
+    return await service.give_role(
+        user_id       = user_id,
+        role_id       = data.role_id,
+        faculty_id    = data.faculty_id,
+        department_id = data.department_id,
+        section_id    = data.section_id
+    )
 
 
+@router.get(
+    "/{user_id}/roles",
+    response_model = list,
+    summary        = "Get user roles",
+    description    = "List all organizational and academic roles assigned to the specified user."
+)
+async def get_role(
+    user_id:      int,
+    current_user: dict       = Depends(admin_required),
+    conn:         Connection = Depends(get_db)
+) -> list:
+    service = UserService(conn)
+    return await service.show_roles(user_id)
 
 
-@router.get("/{user_id}/roles")
-async def get_role(user_id:int,conn:Connection=Depends(get_db)):
-    return await service.show_roles(conn,user_id)
-
-
-
-@router.delete("/{user_id}/roles/{role_id}")
-async def delete_role(data:UserRoleCreate,conn:Connection=Depends(get_db)):
-    return await service.delete_role(conn,data.user_id,data.role_id)
+@router.delete(
+    "/{user_id}/roles/{role_id}",
+    response_model = dict,
+    summary        = "Remove role from user",
+    description    = "Revoke an assigned role from a user using path parameters."
+)
+async def delete_role(
+    user_id:      int,
+    role_id:      int,
+    current_user: dict       = Depends(admin_required),
+    conn:         Connection = Depends(get_db)
+) -> dict:
+    service = UserService(conn)
+    return await service.delete_role(user_id, role_id)

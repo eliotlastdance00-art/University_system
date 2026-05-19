@@ -136,9 +136,9 @@ class AttendanceService:
 
     async def get_group_stats(
         self,
-        group_id: int
+        section_id: int
     ) -> list[dict]:
-        result = await self.repo.get_group_stats(group_id)
+        result = await self.repo.get_group_stats(section_id)
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,

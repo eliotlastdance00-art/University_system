@@ -1,70 +1,59 @@
-#================================================
+# ================================================
 #                MySQL scriptleri
-#================================================
+# ================================================
 
 
-
-from aiomysql import Connection,DictCursor
-
+from aiomysql import DictCursor
 
 
-#--------Add Faculty--------
+class FacultyRepository:
+    def __init__(self, conn):
+        self.conn = conn
 
-async def create_faculty(conn:Connection,name:str,code:str):
-    sql="INSERT INTO faculties(name,code) VALUES (%s,%s)"
-    async with conn.cursor() as cursor:
-        await cursor.execute(sql,(name,code))
-    await conn.commit()   
+    # --------Add Faculty--------
+    async def create_faculty(self, name: str, code: str) -> list[dict]:
+        sql = "INSERT INTO faculties(name,code) VALUES (%s,%s)"
+        async with self.conn.cursor() as cursor:
+            await cursor.execute(sql, (name, code))
+            await self.conn.commit()
 
+    # --------Get all Faculty----------
 
+    async def get_all_faculty(self) -> list[dict]:
+        sql = "SELECT * FROM faculties"
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql)
+            result = await cursor.fetchall()
+        return result
 
-#--------Get all Faculty----------
+    # -----------Get{code}---------------
 
-async def get_all_faculty(conn:Connection):
-    sql="SELECT * FROM faculties"
-    async with conn.cursor(DictCursor) as cursor:
-        await cursor.execute(sql)
-    result=await cursor.fetchall()
-    return result
+    async def get_faculty_by_code(self, code: str) -> list[dict]:
+        sql = "SELECT id,name,code FROM faculties WHERE code=%s"
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql, (code,))
+            return await cursor.fetchone()
 
+    # -----------Get{id}---------------
 
-#-----------Get{code}---------------
+    async def get_faculty_by_id(self, faculty_id: int) -> list[dict]:
+        sql = "SELECT id,name,code FROM faculties WHERE id=%s"
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql, (faculty_id,))
+            return await cursor.fetchone()
 
-async def get_faculty_by_code(conn:Connection,code:str):
-    sql="SELECT id,name,code FROM faculties WHERE code=%s"
-    async with conn.cursor(DictCursor) as cursor:
-        await cursor.execute(sql,(code,))   
-        return await cursor.fetchone()
-    
+    # -----------Update Faculty-----------
 
+    async def update_faculty(self, faculty_id: int, name: str, code: str) -> list[dict]:
+        sql = "UPDATE faculties set name=%s,code=%s where id=%s"
+        async with self.conn.cursor() as cursor:
+            await cursor.execute(sql, (name, code, faculty_id))
+            await self.conn.commit()
 
-#-----------Get{id}---------------
+    # -----------Delete Faculty--------------
 
-async def get_faculty_by_id(conn:Connection,faculty_id:int):
-    sql="SELECT id,name,code FROM faculties WHERE id=%s"
-    async with conn.cursor(DictCursor) as cursor:
-        await cursor.execute(sql,(faculty_id,))   
-        return await cursor.fetchone()
-
-
-
-
-#-----------Update Faculty-----------
-
-async def update_faculty(conn:Connection,faculty_id:int,name:str,code:str):
-    sql="UPDATE faculties set name=%s,code=%s where id=%s"
-    async with conn.cursor() as cursor:
-        await cursor.execute(sql,(name,code,faculty_id))
-    await conn.commit()
-
-
-#-----------Delete Faculty--------------
-
-
-async def delete_faculty(conn:Connection,faculty_id:int):
-    sql="DELETE FROM faculties WHERE id=%s"
-    async with conn.cursor() as cursor:
-        await cursor.execute(sql,(faculty_id))
-    await conn.commit()    
-
-
+    async def delete_faculty(self, faculty_id: int) -> list[dict]:
+        sql = "DELETE FROM faculties WHERE id=%s"
+        async with self.conn.cursor() as cursor:
+            await cursor.execute(sql, (faculty_id))
+            await self.conn.commit()

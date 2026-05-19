@@ -89,8 +89,8 @@ class TimetableService:
 
     
 
-    async def get_group(self,group_id:int)-> list[dict]:
-        group=await self.repo.get_all_group_week(group_id)
+    async def get_group(self,section_id:int)-> list[dict]:
+        group=await self.repo.get_all_group_week(section_id)
         if not group:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -100,8 +100,8 @@ class TimetableService:
     
 
 
-    async def get_day_group(self,day:TimetableEnum,group_id:int) ->list[dict]:
-        result=await self.repo.get_day_group(group_id,day)
+    async def get_day_group(self,day:TimetableEnum,section_id:int) ->list[dict]:
+        result=await self.repo.get_day_group(section_id,day)
         if not result:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

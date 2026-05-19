@@ -110,18 +110,18 @@ async def get_by_semester(
 
 
 @router.get(
-    "/group/{group_id}",
+    "/group/{section_id}",
     response_model = list[AssignmentDetailResponse],
     summary        = "Topar boýunça",
     description    = "Şol toparyň ähli dersleri"
 )
 async def get_by_group(
-    group_id:     int,
+    section_id:     int,
     current_user: dict = Depends(admin_required),
     conn:Connection=Depends(get_db)
 ):
     service = AssignmentService(conn)
-    return await service.get_by_group(group_id)
+    return await service.get_by_group(section_id)
 
 
 # ─── TEACHER ────────────────────────────────────────────────
