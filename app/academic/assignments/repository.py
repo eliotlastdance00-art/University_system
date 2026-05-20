@@ -36,14 +36,13 @@ class AssignmentRepository:
                         sa.subject_id,
                         s.name        AS subject_name,
                         sa.section_id,
-                        g.name        AS section_name
+                        sec.number        AS section_number
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                 """)
-            result = await cur.fetchall()
-            return result
+            return await cur.fetchall()
 
     # ─── GET BY ID ───────────────────────────────────────────
 
@@ -59,11 +58,11 @@ class AssignmentRepository:
                         sa.subject_id,
                         s.name        AS subject_name,
                         sa.section_id,
-                        g.name        AS section_name
+                        sec.number        AS section_number
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     WHERE sa.id = %s
                 """,
                 (id,),
@@ -84,11 +83,11 @@ class AssignmentRepository:
                         sa.subject_id,
                         s.name        AS subject_name,
                         sa.section_id,
-                        g.name        AS section_name
+                        sec.number        AS section_number
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     WHERE sa.semester = %s
                 """,
                 (semester,),
@@ -109,11 +108,11 @@ class AssignmentRepository:
                         sa.subject_id,
                         s.name        AS subject_name,
                         sa.section_id,
-                        s.name        AS section_name
+                        sec.number        AS section_number
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN sections s ON s.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     WHERE sa.section_id = %s
                 """,
                 (section_id,),
@@ -134,11 +133,11 @@ class AssignmentRepository:
                         sa.subject_id,
                         s.name        AS subject_name,
                         sa.section_id,
-                        s.name        AS section_name
+                        sec.number        AS section_number
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     WHERE sa.user_id = %s
                 """,
                 (user_id,),
@@ -159,13 +158,13 @@ class AssignmentRepository:
                         sa.subject_id,
                         s.name        AS subject_name,
                         sa.section_id,
-                        g.name        AS group_name
+                        sec.number        AS section_number
                     FROM subject_assignments sa
                     JOIN users     u ON u.id = sa.user_id
                     JOIN subjects  s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     WHERE sa.user_id  = %s
-                      AND sa.semester = %s
+                    AND sa.semester = %s
                 """,
                 (user_id, semester),
             )
@@ -180,7 +179,7 @@ class AssignmentRepository:
                     SELECT
                         sa.id          AS assignment_id,
                         s.name         AS subject_name,
-                        g.name         AS group_name,
+                        sec.number     AS section_number,
                         sa.semester,
                         t.id           AS timetable_id,
                         t.day,
@@ -190,7 +189,7 @@ class AssignmentRepository:
                     FROM subject_assignments sa
                     JOIN users         u ON u.id = sa.user_id
                     JOIN subjects      s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     LEFT JOIN timetable t ON t.assignment_id = sa.id
                     WHERE sa.user_id = %s
                     ORDER BY
@@ -267,9 +266,9 @@ class AssignmentRepository:
             query = """
                     SELECT id FROM subject_assignments
                     WHERE user_id    = %s
-                      AND subject_id = %s
-                      AND section_id   = %s
-                      AND semester   = %s
+                    AND subject_id = %s
+                    AND section_id   = %s
+                    AND semester     = %s
                 """
             params = [user_id, subject_id, section_id, semester]
 

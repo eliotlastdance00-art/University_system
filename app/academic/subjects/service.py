@@ -36,9 +36,9 @@ async def update_subject(conn,data:SubjectUpdate,subject_id:int):
             status_code=404,
             detail="Not found subject"
         )
-    new_name      = data.name      if data.name      else subject["name"]
-    new_creadits  = data.credits   if data.credits   else subject["credits"]
-    new_department= data.department_id  if data.department_id  else subject["department_id"]
+    new_name      = data.name or subject["name"]
+    new_creadits  = data.credits or subject["credits"]
+    new_department= data.department_id or subject["department_id"]
     await repository.update_subject(conn,subject_id,new_name,new_creadits,new_department)
     return {"message": "Changed Subject ✅"}
 

@@ -8,10 +8,11 @@ class DepartmentRepository:
     #---------------Get all department-faculty------------
     async def get_all_department_faculty(self, faculty_id: int) -> list[dict]:
         sql = """
-            SELECT d.id,
-                   d.name,
-                   d.faculty_id,
-                   f.name AS faculty_name
+            SELECT 
+                d.id,
+                d.name,
+                d.faculty_id,
+                f.name AS faculty_name
             FROM departments d
             JOIN faculties f ON d.faculty_id = f.id
             WHERE faculty_id = %s
@@ -27,10 +28,11 @@ class DepartmentRepository:
         limit: int = 10,
     ) -> list[dict]:
         query = """
-            SELECT d.id,
-                   d.name,
-                   d.faculty_id,
-                   f.name AS faculty_name
+            SELECT 
+                d.id,
+                d.name,
+                d.faculty_id,
+                f.name AS faculty_name
             FROM departments d
             JOIN faculties f ON d.faculty_id = f.id
             WHERE d.id > %s
@@ -45,10 +47,11 @@ class DepartmentRepository:
     #-----------------GET {id}-----------------------
     async def get_department_by_id(self, department_id: int) -> dict | None:
         sql = """
-            SELECT d.id,
-                   d.name,
-                   d.faculty_id,
-                   f.name AS faculty_name
+            SELECT  
+                d.id,
+                d.name,
+                d.faculty_id,
+                f.name AS faculty_name
             FROM departments d
             JOIN faculties f ON d.faculty_id = f.id
             WHERE d.id = %s

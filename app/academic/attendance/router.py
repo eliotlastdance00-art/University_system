@@ -22,9 +22,9 @@ router = APIRouter()
 @router.get(
     "/lesson/{lesson_id}/students",
     response_model = list[AttendanceResponse],
-    summary = "Sapagyň studentleri",
-    description = "Mugallym sapak başladanda "
-                     "studentleri görýär"
+    summary = "Lesson students",
+    description = "Returns the list of students for a given lesson"
+    ". This endpoint is used at the start of a lesson to get the list of students who are supposed to attend."
 )
 async def get_students(
     lesson_id: int,
@@ -40,9 +40,9 @@ async def get_students(
 @router.post(
     "/lesson/{lesson_id}",
     response_model = list[AttendanceResponse],
-    summary = "Gatnaw bellemek",
-    description = "Mugallym ähli studentleriň "
-                     "gatnawy bir gezekde belleýär"
+    summary = "Bulk create attendance records",
+    description = "This endpoint allows teachers to bulk create attendance records for a lesson. "
+"The request body should contain a list of student IDs and their corresponding attendance status. "
 )
 async def bulk_create(
     lesson_id: int,
@@ -59,8 +59,8 @@ async def bulk_create(
 @router.put(
     "/{id}",
     response_model = AttendanceResponse,
-    summary = "Gatnaw üýtget",
-    description = "Ýalňyşlyk bilen ýazylan gatnawy üýtget"
+    summary = "Correct attendance record",
+    description = "This endpoint allows teachers to correct an attendance record. "
 )
 async def update_attendance(
     id: int,
@@ -75,7 +75,7 @@ async def update_attendance(
 @router.get(
     "/lesson/{lesson_id}",
     response_model = list[AttendanceResponse],
-    summary = "Sapagyň gatnawy",
+    summary = "Lesson attendance",
 )
 async def get_by_lesson(
     lesson_id: int,
@@ -89,7 +89,7 @@ async def get_by_lesson(
 @router.get(
     "/lesson/{lesson_id}/stats",
     response_model = AttendanceStatsResponse,
-    summary = "Sapagyň gatnaw statistikasy",
+    summary = "Lesson attendance statistics",
 )
 async def get_lesson_stats(
     lesson_id: int,
@@ -105,7 +105,7 @@ async def get_lesson_stats(
 @router.get(
     "/student/{student_id}",
     response_model = list[AttendanceResponse],
-    summary = "Studentiň ähli gatnawy",
+    summary = "Student attendance records",
 )
 async def get_by_student(
     student_id: int,
@@ -119,7 +119,7 @@ async def get_by_student(
 @router.get(
     "/student/{student_id}/stats",
     response_model = AttendanceStatsResponse,
-    summary = "Studentiň gatnaw statistikasy",
+    summary = "Student attendance statistics",
 )
 async def get_student_stats(
     student_id: int,
@@ -133,9 +133,8 @@ async def get_student_stats(
 @router.get(
     "/group/{section_id}/stats",
     response_model = list,
-    summary = "Toparyň gatnaw statistikasy",
-    description = "Ähli studentleriň gatnawy "
-                    "göterim boýunça"
+    summary = "Group attendance statistics",
+    description = "Returns the attendance statistics for all students in a group."
 )
 async def get_group_stats(
     section_id: int,

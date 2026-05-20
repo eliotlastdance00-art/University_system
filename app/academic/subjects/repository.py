@@ -73,20 +73,9 @@ async def get_id_subjects(conn: Connection, subject_id: int):
     return await cursor.fetchone()
 
 
-
-
-
-
-
-#=============GET NAME SUBJECTS=================
-async def get_name_subjects(conn: Connection,name:str,department_id:int):
+# =============GET NAME SUBJECTS=================
+async def get_name_subjects(conn: Connection, name: str, department_id: int):
     sql = "SELECT id,name,credits,department_id FROM subjects WHERE name=%s AND department_id=%s"
     async with conn.cursor(DictCursor) as cursor:
-        await cursor.execute(sql, (name,department_id))
+        await cursor.execute(sql, (name, department_id))
     return await cursor.fetchone()
-
-
-
-
-
-

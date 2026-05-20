@@ -28,7 +28,10 @@ class TimetableService:
 
     async def check_time(self,start_time:str,end_time:str)->bool:
         if start_time>=end_time:
-            return False
+            raise HTTPException(
+                status_code = status.HTTP_400_BAD_REQUEST,
+                detail      = "Start time must be before end time."
+            )
         return True
     async def check_teacher_conflict(self,user_id:int,day:str,start_time:str,exclude_id:int|None):
         conflict=await self.repo.teacher_conflict(user_id, day, start_time, exclude_id)
@@ -37,7 +40,7 @@ class TimetableService:
                 status_code = status.HTTP_409_CONFLICT,
                 detail      = "Teacher has a scheduling conflict at this time."
             )
-      
+
 
 
     async def _check_duplicate(self,assignment_id:int,day:str,start_time:str,exclude_id:int|None):
@@ -70,11 +73,11 @@ class TimetableService:
             start_time=str(data.start_time),
             exclude_id=None
         )
-       
+
         return await self.repo.create(data)
         
 
-    async def get_all(self) -> list[dict]:
+    async def get_all(self) -> list[dict]:  # sourcery skip: avoid-builtin-shadow
         all= await self.repo.get_all()
         if not all:
             raise HTTPException(
@@ -183,15 +186,6 @@ class TimetableService:
             )
         return {"message": f"ID={id} succesfully deleted"}
 
-
-    
-
-
-
-
-
-    
-        
 
 
 
