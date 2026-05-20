@@ -25,8 +25,8 @@ class SectionRepository:
             await cur.execute(
                 """
                              SELECT *  FROM sections
-                             LIMIT %s OFFSET %s
-                             """,
+                            LIMIT %s OFFSET %s
+                            """,
                 (limit, skip),
             )
             result = await cur.fetchall()
@@ -38,8 +38,8 @@ class SectionRepository:
             await cur.execute(
                 """
                              SELECT *  FROM sections
-                             WHERE id=%s
-                             """,
+                            WHERE id=%s
+                            """,
                 (id,),
             )
             result = await cur.fetchone()

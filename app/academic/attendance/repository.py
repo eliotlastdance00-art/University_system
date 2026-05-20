@@ -14,31 +14,31 @@ class AttendanceRepository:
         self,
         lesson_id: int
     ) -> list[dict]:
-       async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
-                    SELECT
-                        u.id AS student_id,
-                        u.full_name AS student_name,
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute("""
+                SELECT
+                    u.id AS student_id,
+                    u.full_name AS student_name,
                         COALESCE(a.status, 'absent') AS status,
                         a.id AS attendance_id
                     FROM lessons l
                     JOIN timetable t
-                         ON t.id = l.timetable_id
+                        ON t.id = l.timetable_id
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     JOIN sections sg
-                         ON sg.id = sa.section_id
+                        ON sg.id = sa.section_id
                     JOIN user_roles ur
-                         ON ur.role_id = 3
+                        ON ur.role_id = 3
                     JOIN users u
-                         ON u.id = ur.user_id
+                        ON u.id = ur.user_id
                     LEFT JOIN attendance a
-                         ON a.lesson_id = l.id
-                         AND a.student_id = u.id
+                        ON a.lesson_id = l.id
+                        AND a.user_id = u.id
                     WHERE l.id = %s
                     ORDER BY u.full_name
                 """, (lesson_id,))
-                return await cur.fetchall()
+            return await cur.fetchall()
 
 
     # ─── BULK CREATE ─────────────────────────────────────────
@@ -51,13 +51,13 @@ class AttendanceRepository:
         async with self.conn.cursor(DictCursor) as cur:
                 await cur.executemany("""
                     INSERT INTO attendance
-                        (lesson_id, student_id, status)
+                        (lesson_id, user_id, status)
                     VALUES
                         (%s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         status = VALUES(status)
                 """, [
-                    (lesson_id, r["student_id"], r["status"])
+                    (lesson_id, r["user_id"], r["status"])
                     for r in records
                 ])
                 await self.conn.commit()
@@ -117,27 +117,29 @@ class AttendanceRepository:
         async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
                     SELECT
-                        a.id,
-                        a.lesson_id,
-                        a.user_id,
-                        u.full_name AS student_name,
-                        a.status,
-                        l.date,
-                        s.name AS subject_name,
-                        g.name AS group_name
-                    FROM attendance a
-                    JOIN users u
-                         ON u.id = a.user_id
-                    JOIN lessons l
-                         ON l.id = a.lesson_id
-                    JOIN timetable t
-                         ON t.id = l.timetable_id
-                    JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
-                    JOIN subjects s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
-                    WHERE a.user_id = %s
-                    ORDER BY l.date DESC
+                    a.id,
+                    a.lesson_id,
+                    a.user_id,
+                    u.full_name AS student_name,
+                    a.status,
+                    l.date,
+                    s.name AS subject_name,
+                    sec.number AS section_number
+                FROM attendance a
+                JOIN users u
+                    ON u.id = a.user_id
+                JOIN lessons l
+                    ON l.id = a.lesson_id
+                JOIN timetable t
+                    ON t.id = l.timetable_id
+                JOIN subject_assignments sa
+                    ON sa.id = t.assignment_id
+                JOIN subjects s
+                    ON s.id = sa.subject_id
+                JOIN sections sec
+                    ON sec.id = sa.section_id
+                WHERE a.user_id = %s
+                ORDER BY l.date DESC
                 """, (student_id,))
                 return await cur.fetchall()
 
@@ -187,7 +189,7 @@ class AttendanceRepository:
                     JOIN lessons l ON l.id = a.lesson_id
                     JOIN timetable t ON t.id = l.timetable_id
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     WHERE sa.section_id = %s
                     GROUP BY u.id, u.full_name
                     ORDER BY percentage ASC
@@ -235,10 +237,10 @@ class AttendanceRepository:
                     SELECT l.id
                     FROM lessons l
                     JOIN timetable t
-                         ON t.id = l.timetable_id
+                        ON t.id = l.timetable_id
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     WHERE l.id = %s
-                      AND sa.user_id = %s
+                    AND sa.user_id = %s
                 """, (lesson_id, user_id))
                 return await cur.fetchone() is not None

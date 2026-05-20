@@ -22,8 +22,8 @@ class SectionService:
             )
         return await self.repo.create(data)
 
-    async def update(self, data: ChUpdate):
-        cohort = await self.repo.get_by_id(data.id)
+    async def update(self, id: int, data: ChUpdate):
+        cohort = await self.repo.get_by_id(id)
         if not cohort:
             raise HTTPException(status_code=404, detail="Not found cohort")
         new_program_id = (
@@ -35,9 +35,9 @@ class SectionService:
             else cohort["academic_year_id"]
         )
         data = ChUpdate(
-            id=data.id, program_id=new_program_id, academic_year_id=new_academic_year_id
+            id=id, program_id=new_program_id, academic_year_id=new_academic_year_id
         )
-        return await self.repo.update(data)
+        return await self.repo.update(id,data)
 
     async def get_all(self) -> list[dict]:
         return await self.repo.get_all()
@@ -47,3 +47,10 @@ class SectionService:
         if not result:
             raise HTTPException(status_code=404, detail="Not found section")
         return result
+    
+
+    async def delete(self, id: int):
+        section = await self.repo.get_by_id(id)
+        if not section:
+            raise HTTPException(status_code=404, detail="Not found section")
+        return await self.repo.delete(id)

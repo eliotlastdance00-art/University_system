@@ -9,6 +9,5 @@ class ChCreate(BaseModel):
 
 
 class ChUpdate(BaseModel):
-    id:int
     program_id:int
     academic_year_id:int

@@ -33,7 +33,7 @@ class LessonService:
         if not is_owner:
             raise HTTPException(
                 status_code = status.HTTP_403_FORBIDDEN,
-                detail = "Bu siziň sapakyňyz däl!"
+                detail = "You are not the owner of this lesson."
             )
 
 
@@ -66,7 +66,7 @@ class LessonService:
         if exists:
             raise HTTPException(
                 status_code = status.HTTP_409_CONFLICT,
-                detail = "Bu sapak bu gün eýýäm bellenilen!"
+                detail = "This lesson has already been started today for this timetable."
             )
 
         return await self.repo.create(timetable_id, today)
@@ -91,7 +91,7 @@ class LessonService:
         if lesson["status"] == "cancelled":
             raise HTTPException(
                 status_code = status.HTTP_409_CONFLICT,
-                detail = "Bu sapak eýýäm ýatyrylan!"
+                detail = "This lesson has already been cancelled!"
             )
 
         return await self.repo.cancel(id, data.note)
@@ -104,7 +104,7 @@ class LessonService:
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
-                detail = "Hiç hili sapak tapylmady"
+                detail = "No lessons found"
             )
         return result
 
@@ -116,7 +116,7 @@ class LessonService:
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
-                detail = f"{date} senesinde sapak tapylmady"
+                detail = f"No lessons found for {date}"
             )
         return result
 
@@ -131,7 +131,7 @@ class LessonService:
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
-                detail = "Bu timetable üçin sapak tapylmady"
+                detail = "No lessons found for this timetable."
             )
         return result
 
@@ -148,7 +148,7 @@ class LessonService:
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
-                detail = "Siziň sapak taryhyňyz tapylmady"
+                detail = "No lesson history found for this teacher."
             )
         return result
 

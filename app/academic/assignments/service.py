@@ -63,9 +63,8 @@ class AssignmentService:
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
-                detail      = f"Semester {semester}-de "
-                              f"hiç hili bellenme tapylmady"
-            )
+                detail      = f"Not found any assignments for semester {semester}"
+                )
         return result
 
 
@@ -76,8 +75,7 @@ class AssignmentService:
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
-                detail      = f"Topar ID={section_id} üçin "
-                              f"hiç hili bellenme tapylmady"
+                detail      = f"Not found any assignments for group ID={section_id}"
             )
         return result
 
@@ -89,8 +87,7 @@ class AssignmentService:
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
-                detail      = f"Mugallym ID={user_id} üçin "
-                              f"hiç hili ders tapylmady"
+                detail      = f"Not found any assignments for teacher ID={user_id}"
             )
         return result
 
@@ -106,8 +103,7 @@ class AssignmentService:
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
-                detail      = f"Mugallym ID={user_id} semester "
-                              f"{semester}-de ders tapylmady"
+                detail      = f"Not found any assignments for teacher ID={user_id} in semester {semester}"
             )
         return result
 
@@ -119,8 +115,7 @@ class AssignmentService:
         if not result:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
-                detail      = f"Mugallym ID={user_id} üçin "
-                              f"tertip tapylmady"
+                detail      = f"Not found any schedule for teacher ID={user_id}"
             )
         return result
 
@@ -148,7 +143,7 @@ class AssignmentService:
             subject_id  = data.subject_id or current["subject_id"]
             section_id    = data.section_id   or current["section_id"]
             semester    = data.semester.value if data.semester \
-                          else current["semester"]
+                        else current["semester"]
 
             already_exists = await self.repo.exists(
                 user_id    = user_id,
@@ -160,7 +155,7 @@ class AssignmentService:
             if already_exists:
                 raise HTTPException(
                     status_code = status.HTTP_409_CONFLICT,
-                    detail      = "Bu kombinasiýa eýýäm bar!"
+                    detail      = "This teacher has already been assigned to this subject for this group in this semester."
                 )
 
         return await self.repo.update(id, data)
@@ -177,6 +172,6 @@ class AssignmentService:
         if not deleted:
             raise HTTPException(
                 status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail      = "Pozmak başartmady"
+                detail      = "Failed to delete the assignment. Please try again later."
             )
-        return {"message": f"ID={id} üstünlikli pozuldy"}
+        return {"message": f"ID={id} successfully deleted"}

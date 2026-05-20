@@ -6,7 +6,7 @@ from .schemas import ProgramCreate,ProgramUpdate
 
 
 
-router=APIRouter
+router=APIRouter()
 
 
 

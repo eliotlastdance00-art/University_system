@@ -9,8 +9,8 @@ from app.academic.lessons.schemas import (
     LessonStatsResponse
 )
 from app.core.dependencies import (
-   admin_required,
-   teacher_required
+admin_required,
+teacher_required
 )
 
 router = APIRouter()
@@ -35,7 +35,7 @@ async def get_all(
 @router.get(
     "/date/{date}",
     response_model = list[LessonResponse],
-    summary = "Şol günki sapaklar",
+    summary = "THAT LESSONS BY DATE",
 )
 async def get_by_date(
     date: date,
@@ -49,7 +49,7 @@ async def get_by_date(
 @router.get(
     "/timetable/{timetable_id}",
     response_model = list[LessonResponse],
-    summary = "Timetable boýunça sapaklar",
+    summary = "THAT LESSONS BY TIMETABLE",
 )
 async def get_by_timetable(
     timetable_id: int,
@@ -65,9 +65,9 @@ async def get_by_timetable(
 @router.post(
     "/{timetable_id}/start",
     response_model = LessonResponse,
-    summary = "Sapak başlat",
-    description = "Mugallym sapagy başladýar — "
-                     "date özi goýulýar"
+    summary = "Start Lesson",
+    description = "Teacher starts the lesson — "
+                  "date is set automatically"
 )
 async def start_lesson(
     timetable_id: int,
@@ -81,7 +81,7 @@ async def start_lesson(
 @router.put(
     "/{id}/cancel",
     response_model = LessonResponse,
-    summary = "Sapak ýatyr",
+    summary = "Cancel Lesson",
 )
 async def cancel_lesson(
     id: int,
@@ -96,7 +96,7 @@ async def cancel_lesson(
 @router.get(
     "/my/history",
     response_model = list[LessonResponse],
-    summary = "Meniň sapak taryhym",
+    summary = "My Lesson History",
 )
 async def get_my_history(
     current_user: dict = Depends(teacher_required),
@@ -109,7 +109,7 @@ async def get_my_history(
 @router.get(
     "/my/stats",
     response_model = LessonStatsResponse,
-    summary = "Meniň sapak statistikam",
+    summary = "My Lesson Stats",
 )
 async def get_my_stats(
     current_user: dict = Depends(teacher_required),

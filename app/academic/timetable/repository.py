@@ -42,30 +42,29 @@ class TimetableRepository:
         async with self.conn.cursor(DictCursor) as cur:
             await cur.execute("""
                     SELECT
-                           t.id,
-                           t.day,
-                           TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
-                           TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
-                           t.room,
-                           t.assignment_id ,     
-                           sa.semester,
-                           sa.user_id    AS teacher_id,
-                           u.full_name   AS teacher_name,
-                           sa.subject_id,
-                           s.name        AS subject_name,
-                           sa.section_id,
-                           g.name        AS group_name                              
+                        t.id,
+                        t.day,
+                        TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
+                        TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
+                        t.room,
+                        t.assignment_id ,     
+                        sa.semester,
+                        sa.user_id    AS teacher_id,
+                        u.full_name   AS teacher_name,
+                        sa.subject_id,
+                        s.name        AS subject_name,
+                        sa.section_id,
+                        sec.number        AS section_number,                             
                         FROM timetable t
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN sections       g  ON g.id=sa.section_id
+                        JOIN sections            sec ON sec.id=sa.section_id
                         ORDER BY
-                                  FIELD(T.day,
-                                  "monday","tuesday","wednesday",
-                                  "thursday","friday","saturday"),
-                                  t.start_time;                                                                       
-                                         
+                                FIELD(t.day,
+                                "monday","tuesday","wednesday",
+                                "thursday","friday","saturday"),
+                                t.start_time;                                                                               
                 """)
             return await cur.fetchall()
 
@@ -76,23 +75,22 @@ class TimetableRepository:
             await cur.execute(
                 """
                     SELECT
-                           t.id,
-                           t.assignment_id,
-                           t.day,
-                           TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
-                           TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
-                           t.room,
-                           sa.semester,
-                           u.full_name   AS teacher_name,
-                           s.name        AS subject_name,
-                           g.name        AS group_name                              
+                        t.id,
+                        t.assignment_id,
+                        t.day,
+                        TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
+                        TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
+                        t.room,
+                        sa.semester,
+                        u.full_name   AS teacher_name,
+                        s.name        AS subject_name,
+                        sec.number    AS section_number                              
                         FROM timetable t
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN sections       g  ON g.id=sa.section_id
+                        JOIN sections            sec ON sec.id=sa.section_id
                         WHERE t.id=%s                                                                                 
-                                         
                 """,
                 (id,),
             )
@@ -105,28 +103,28 @@ class TimetableRepository:
             await cur.execute(
                 """
                     SELECT
-                           t.id,
-                           t.day,
-                           TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
-                           TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
-                           t.room,
-                           t.assignment_id,
-                           sa.semester,
-                           u.full_name   AS teacher_name,
-                           s.name        AS subject_name,
-                           g.name        AS group_name                              
+                        t.id,
+                        t.day,
+                        TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
+                        TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
+                        t.room,
+                        t.assignment_id,
+                        sa.semester,
+                        u.full_name   AS teacher_name,
+                        s.name        AS subject_name,
+                        sec.number    AS section_number                              
                         FROM timetable t
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN sections       g  ON g.id=sa.section_id
-                                  WHERE sa.section_id=%s  
+                        JOIN sections            sec ON sec.id=sa.section_id
+                                WHERE sa.section_id=%s  
                         ORDER BY
-                                  FIELD(T.day,
-                                  "monday","tuesday","wednesday",
-                                  "thursday","friday","saturday"),
-                                  t.start_time
-                 """,
+                                FIELD(t.day,
+                                "monday","tuesday","wednesday",
+                                "thursday","friday","saturday"),
+                                t.start_time
+                """,
                 (section_id,),
             )
             return await cur.fetchall()
@@ -138,25 +136,23 @@ class TimetableRepository:
             await cur.execute(
                 """
                     SELECT
-                           t.id,
-                           t.day,
-                           TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
-                           TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
-                           t.room,
-                           t.assignment_id,
-                           sa.semester,
-                           u.full_name   AS teacher_name,
-                           s.name        AS subject_name,
-                           g.name        AS group_name                              
+                        t.id,
+                        t.day,
+                        TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
+                        TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
+                        t.room,
+                        t.assignment_id,
+                        sa.semester,
+                        u.full_name   AS teacher_name,
+                        s.name        AS subject_name,
+                        sec.number    AS section_number                              
                         FROM timetable t
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN sections       g  ON g.id=sa.section_id
-                                  WHERE sa.section_id=%s AND  t.day=%s 
-                          ORDER BY t.start_time            
-                                                                                                  
-                                         
+                        JOIN sections            sec ON sec.id=sa.section_id
+                                WHERE sa.section_id=%s AND  t.day=%s 
+                        ORDER BY t.start_time                                                                          
                 """,
                 (section_id, day),
             )
@@ -169,27 +165,26 @@ class TimetableRepository:
             await cur.execute(
                 """
                     SELECT
-                           t.id,
-                           t.day,
-                           TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
-                           TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
-                           t.room,
-                           sa.semester,
-                           u.full_name   AS teacher_name,
-                           s.name        AS subject_name,
-                           g.name        AS group_name                              
+                        t.id,
+                        t.day,
+                        TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
+                        TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
+                        t.room,
+                        sa.semester,
+                        u.full_name   AS teacher_name,
+                        s.name        AS subject_name,
+                        sec.number    AS section_number                            
                         FROM timetable t
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN sections       g  ON g.id=sa.section_id
-                                  WHERE   sa.user_id=%s          
+                        JOIN sections            sec ON sec.id=sa.section_id
+                                WHERE   sa.user_id=%s          
                             ORDER BY
-                                  FIELD(t.day,
-                                  "monday","tuesday","wednesday",
-                                  "thursday","friday","saturday"),
-                                  t.start_time                                                                      
-                                         
+                                FIELD(t.day,
+                                "monday","tuesday","wednesday",
+                                "thursday","friday","saturday"),
+                                t.start_time                                                                               
                 """,
                 (user_id,),
             )
@@ -202,22 +197,22 @@ class TimetableRepository:
             await cur.execute(
                 """
                     SELECT
-                           t.id,
-                           t.day,
-                           TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
-                           TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
-                           t.room,
-                           sa.semester,
-                           u.full_name   AS teacher_name,
-                           s.name        AS subject_name,
-                           g.name        AS group_name                              
+                        t.id,
+                        t.day,
+                        TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time, 
+                        TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
+                        t.room,
+                        sa.semester,
+                        u.full_name   AS teacher_name,
+                        s.name        AS subject_name,
+                        sec.number    AS section_number                              
                         FROM timetable t
                         JOIN subject_assignments sa ON sa.id=t.assignment_id
                         JOIN users               u  ON u.id=sa.user_id
                         JOIN subjects            s  ON s.id=sa.subject_id 
-                        JOIN sections       g  ON g.id=sa.section_id
-                                  WHERE   sa.user_id=%s  AND t.day=%s
-                                  ORDER BY t.start_time        
+                        JOIN sections            sec ON sec.id=sa.section_id
+                                WHERE   sa.user_id=%s  AND t.day=%s
+                                ORDER BY t.start_time        
                             
                 """,
                 (user_id, day),
@@ -296,12 +291,12 @@ class TimetableRepository:
                         g.name AS group_name
                     FROM timetable t
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     WHERE sa.user_id = %s
-                      AND t.day = %s
-                      AND t.start_time = %s
+                    AND t.day = %s
+                    AND t.start_time = %s
                 """
                 params = [user_id, day, start_time]
 
@@ -325,8 +320,8 @@ class TimetableRepository:
                 query = """
                     SELECT id FROM timetable
                     WHERE assignment_id = %s
-                      AND day = %s
-                      AND start_time = %s
+                    AND day = %s
+                    AND start_time = %s
                 """
                 params = [assignment_id, day, start_time]
 
@@ -339,5 +334,3 @@ class TimetableRepository:
 
 
 
-    
-            

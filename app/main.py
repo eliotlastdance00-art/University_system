@@ -5,7 +5,9 @@ from fastapi import FastAPI
 from app.academic.academic_years.router import router as academic_year_router
 from app.academic.assignments.router import router as assignment_router
 from app.academic.attendance.router import router as attendance_router
+from app.academic.cohorts.router import router as cohort_router
 from app.academic.lessons.router import router as lesson_router
+from app.academic.programs.router import router as program_router
 from app.academic.sections.router import router as section_router
 from app.academic.subjects.router import router as subject_router
 from app.academic.timetable.router import router as timetable_router
@@ -62,7 +64,10 @@ app.include_router(
     section_router, prefix="/University_system/v1/sections", tags=["Sections"]
 )
 app.include_router(
-    section_router, prefix="/University_system/v1/programs", tags=["Programs"]
+    program_router, prefix="/University_system/v1/programs", tags=["Programs"]
+)
+app.include_router(
+    cohort_router, prefix="/University_system/v1/cohorts", tags=["Cohorts"]
 )
 
 

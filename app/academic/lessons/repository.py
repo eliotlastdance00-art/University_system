@@ -14,7 +14,7 @@ class LessonRepository:
         timetable_id: int,
         date: date,
     ) -> dict:
-       async with self.conn.cursor(DictCursor) as cur:
+        async with self.conn.cursor(DictCursor) as cur:
                 await cur.execute("""
                     INSERT INTO lessons
                         (timetable_id, date, status)
@@ -37,15 +37,15 @@ class LessonRepository:
                         l.status,
                         l.note,
                         s.name AS subject_name,
-                        g.name AS group_name,
+                        sec.number AS section_number,
                         u.full_name AS teacher_name
                     FROM lessons l
                     JOIN timetable t
-                         ON t.id = l.timetable_id
+                        ON t.id = l.timetable_id
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     WHERE l.id = %s
                 """, (id,))
@@ -64,15 +64,15 @@ class LessonRepository:
                         l.status,
                         l.note,
                         s.name AS subject_name,
-                        g.name AS group_name,
+                        sec.number AS section_number,
                         u.full_name AS teacher_name
                     FROM lessons l
                     JOIN timetable t
-                         ON t.id = l.timetable_id
+                        ON t.id = l.timetable_id
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     ORDER BY l.date DESC
                 """)
@@ -91,15 +91,15 @@ class LessonRepository:
                         l.status,
                         l.note,
                         s.name AS subject_name,
-                        g.name AS group_name,
+                        sec.number AS section_number,
                         u.full_name AS teacher_name
                     FROM lessons l
                     JOIN timetable t
-                         ON t.id = l.timetable_id
+                        ON t.id = l.timetable_id
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     WHERE l.date = %s
                     ORDER BY t.start_time
@@ -122,15 +122,15 @@ class LessonRepository:
                         l.status,
                         l.note,
                         s.name AS subject_name,
-                        g.name AS group_name,
+                        sec.number AS section_number,
                         u.full_name AS teacher_name
                     FROM lessons l
                     JOIN timetable t
-                         ON t.id = l.timetable_id
+                        ON t.id = l.timetable_id
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     WHERE l.timetable_id = %s
                     ORDER BY l.date DESC
@@ -153,15 +153,15 @@ class LessonRepository:
                         l.status,
                         l.note,
                         s.name AS subject_name,
-                        g.name AS group_name,
+                        sec.number AS section_number,
                         u.full_name AS teacher_name
                     FROM lessons l
                     JOIN timetable t
-                         ON t.id = l.timetable_id
+                        ON t.id = l.timetable_id
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     JOIN subjects s ON s.id = sa.subject_id
-                    JOIN sections g ON g.id = sa.section_id
+                    JOIN sections sec ON sec.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     WHERE sa.user_id = %s
                     ORDER BY l.date DESC
@@ -183,9 +183,9 @@ class LessonRepository:
                         SUM(l.status = 'cancelled') AS cancelled
                     FROM lessons l
                     JOIN timetable t
-                         ON t.id = l.timetable_id
+                        ON t.id = l.timetable_id
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     WHERE sa.user_id = %s
                 """, (user_id,))
                 return await cur.fetchone()
@@ -220,7 +220,7 @@ class LessonRepository:
                 await cur.execute("""
                     SELECT id FROM lessons
                     WHERE timetable_id = %s
-                      AND date = %s
+                    AND date = %s
                 """, (timetable_id, date))
                 return await cur.fetchone() is not None
 
@@ -237,10 +237,10 @@ class LessonRepository:
                     SELECT l.id
                     FROM lessons l
                     JOIN timetable t
-                         ON t.id = l.timetable_id
+                        ON t.id = l.timetable_id
                     JOIN subject_assignments sa
-                         ON sa.id = t.assignment_id
+                        ON sa.id = t.assignment_id
                     WHERE l.id = %s
-                      AND sa.user_id = %s
+                    AND sa.user_id = %s
                 """, (lesson_id, user_id))
                 return await cur.fetchone() is not None

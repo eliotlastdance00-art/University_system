@@ -38,7 +38,7 @@ class CohortRepository:
             result = await cur.fetchone()
         return result
 
-    async def update(self, data: ChUpdate):
+    async def update(self,id:int , data: ChUpdate):
         async with self.conn(DictCursor) as cur:
             await cur.execute(
                 """
@@ -46,7 +46,7 @@ class CohortRepository:
                 SET program_id=%s,academic_year_id=%s
                 WHERE id=%s
                 """,
-                (data.program_id, data.academic_year_id, data.id),
+                (data.program_id, data.academic_year_id,id),
             )
         await self.conn.commit()
 
