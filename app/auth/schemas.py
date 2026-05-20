@@ -17,5 +17,5 @@ class SaveRefreshToken(BaseModel):
     user_id:int
     token:str
     expires_at:datetime  
-    is_revoked:False
+    is_revoked:bool = False
       

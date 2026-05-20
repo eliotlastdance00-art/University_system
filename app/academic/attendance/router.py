@@ -135,7 +135,7 @@ async def get_student_stats(
     response_model = list,
     summary = "Toparyň gatnaw statistikasy",
     description = "Ähli studentleriň gatnawy "
-                     "göterim boýunça"
+                    "göterim boýunça"
 )
 async def get_group_stats(
     section_id: int,
