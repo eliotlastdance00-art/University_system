@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-
+from app.auth.schemas import SaveRefreshToken
 from fastapi import HTTPException
 
 from app.core.config import settings
@@ -38,12 +38,13 @@ class AuthService:
         expire_at = datetime.now(timezone.utc) + timedelta(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
-        await self.repo.save_refresh_token(
+        refresh_data = SaveRefreshToken(
             user_id=user["id"],
             token=refresh_token,
             expires_at=expire_at,
             is_revoked=False,
         )
+        await self.repo.save_refresh_token(refresh_data)
         return TokenResponse(
             access_token=access_token, refresh_token=refresh_token, token_type="bearer"
         )

@@ -1,6 +1,6 @@
 import aiomysql 
 from app.core.config import settings
-from contextlib import asynccontextmanager
+
 
 
 pool=None
@@ -27,5 +27,11 @@ async def close_pool():
 
 async def get_db():
     async with pool.acquire() as conn:
-        yield conn
+        try:
+            yield conn
+        except Exception as e:
+            await conn.rollback()
+            raise e
+        else:
+            await conn.commit()
 
