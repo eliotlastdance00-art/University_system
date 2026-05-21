@@ -47,7 +47,7 @@ class SectionRepository:
     
 
 
-    async def update_section(self, data: UpdateSection) -> dict | None:
+    async def update_section(self,id:int, data: UpdateSection) -> dict | None:
         async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
@@ -55,10 +55,10 @@ class SectionRepository:
                 SET cohort_id=%s, number=%s, capacity=%s
                 WHERE id=%s
                 """,
-                (data.cohort_id, data.number, data.capacity, data.id),
+                (data.cohort_id, data.number, data.capasity,id),
             )
             await self.conn.commit()
-            return await self.get_section_by_id(data.id)
+            return await self.get_section_by_id(id)
         
 
     async def delete_section(self, id: int) -> bool:
@@ -98,4 +98,36 @@ class SectionRepository:
                 (number, cohort_id),
             )
             result = await cur.fetchone()
-        return result        
+        return result 
+
+
+    async def get_section_students(self,id:int)->list[dict]:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute("""
+                                SELECT
+                                u.id,
+                                u.full_name,
+                                u.email
+                                FROM users u
+                                JOIN user_profiles up ON u.id=up.user_id
+                                JOIN user_roles    ur ON u.id=ur.user_id
+                                JOIN roles         r  ON ur.role_id=r.id
+                                WHERE up.section_id=%s AND r.name="student"
+                    """,(id,)) 
+            await cur.fetchall()      
+
+
+    async def get_section_timetable(self,id:int)->list[dict]:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute("""
+                                SELECT
+                                u.id,
+                                u.full_name,
+                                u.email
+                                FROM users u
+                                JOIN user_profiles up ON u.id=up.user_id
+                                JOIN user_roles    ur ON u.id=ur.user_id
+                                JOIN roles         r  ON ur.role_id=r.id
+                                WHERE up.section_id=%s AND r.name="student"
+                    """,(id,)) 
+            await cur.fetchall()      

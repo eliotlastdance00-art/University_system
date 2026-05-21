@@ -8,7 +8,6 @@ class SectionCreate(BaseModel):
 
 
 class UpdateSection(BaseModel):
-    id: int
     cohort_id: int | None = None
     number: int | None = None
     capasity: int | None = None

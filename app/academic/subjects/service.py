@@ -4,7 +4,8 @@ from .schemas import SubjectResponse,SubjectUpdate,SubjectCreate
 from app.faculty import repository as faculty_repository
 from app.department import repository as department_repository
 
-
+# todo Class etmeli icini 
+# todo Repsitoryny hem
 
 
 
@@ -29,8 +30,8 @@ async def create_subject(conn,data:SubjectCreate) -> dict:
 
 
 #         UPDATE SUBJECT
-async def update_subject(conn,data:SubjectUpdate,subject_id:int):
-    subject= await repository.get_id_subjects(conn,subject_id)
+async def update_subject(conn,data:SubjectUpdate,id:int):
+    subject= await repository.get_id_subjects(conn,id)
     if not subject:
         raise HTTPException(
             status_code=404,
@@ -39,7 +40,7 @@ async def update_subject(conn,data:SubjectUpdate,subject_id:int):
     new_name      = data.name or subject["name"]
     new_creadits  = data.credits or subject["credits"]
     new_department= data.department_id or subject["department_id"]
-    await repository.update_subject(conn,subject_id,new_name,new_creadits,new_department)
+    await repository.update_subject(conn,id,new_name,new_creadits,new_department)
     return {"message": "Changed Subject ✅"}
 
 
@@ -78,8 +79,8 @@ async def get_subject_department_all(conn,department_id:int):
 
 
 #     GET SUBJECT ID
-async def get_subject_id(conn,subject_id:int):
-    subject=await repository.get_id_subjects(conn,subject_id)
+async def get_subject_id(conn,id:int):
+    subject=await repository.get_id_subjects(conn,id)
     if not subject:
         raise HTTPException(
             status_code=404,

@@ -1,12 +1,14 @@
 from fastapi import HTTPException
+from app.academic.sections.repository import SectionRepository
 
 from .repository import CohortRepository
 from .schemas import ChCreate, ChUpdate
 
 
-class SectionService:
+class CohortService:
     def __init__(self, conn):
         self.repo = CohortRepository(conn)
+        self.sec_repo=SectionRepository(conn)
 
     async def create(self, data: ChCreate):
         duplicate_cohort = await self.repo.get_by_name(data.name)
@@ -45,12 +47,19 @@ class SectionService:
     async def get_by_id(self, id: int) -> dict:
         result = await self.repo.get_by_id(id)
         if not result:
-            raise HTTPException(status_code=404, detail="Not found section")
+            raise HTTPException(status_code=404, detail="Not found cohort")
         return result
     
 
     async def delete(self, id: int):
         section = await self.repo.get_by_id(id)
         if not section:
-            raise HTTPException(status_code=404, detail="Not found section")
+            raise HTTPException(status_code=404, detail="Not found cohort")
         return await self.repo.delete(id)
+    
+
+    async def get_cohort_section(self,id:int)->list[dict]:
+        cohort=await self.repo.get_by_id(id)
+        if not cohort:
+            raise HTTPException(status_code=404, detail="Not found cohort")
+        return await self.sec_repo.get_sections_by_cohort_id(id)
