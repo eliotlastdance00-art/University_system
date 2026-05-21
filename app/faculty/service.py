@@ -1,4 +1,5 @@
 from  app.faculty.repository import FacultyRepository
+from app.department.repository import DepartmentRepository
 from  .schemas import FacultyCreate,FacultyUpdate,FacultyResponse
 from fastapi import HTTPException
 
@@ -7,8 +8,8 @@ from fastapi import HTTPException
 
 class FacultyService:
     def __init__(self,conn):
-        self.conn = conn
-        self.repo = FacultyRepository(self.conn)
+        self.repo = FacultyRepository(conn)
+        self.dp_repo=DepartmentRepository(conn)
     #     Created faculty
     async def create_faculty(self,data:FacultyCreate)-> list[dict]:
         existing=await self.repo.get_faculty_by_code(data.code)
@@ -28,15 +29,12 @@ class FacultyService:
     #    Get all faculty
     async def get_all_faculty(self)-> list[dict]:
         faculties=await self.repo.get_all_faculty()
-        if not faculties:
-            return []
-        return faculties
-    
+        return faculties or []
 
 
     #Get {id} faculty
-    async def get_faculty_id(self,faculty_id)-> list[dict]:
-        faculty=await self.repo.get_faculty_by_id(faculty_id)
+    async def get_faculty_id(self,id:int)-> list[dict]:
+        faculty=await self.repo.get_faculty_by_id(id)
         if not faculty:
             raise HTTPException(
             status_code=404,
@@ -46,16 +44,16 @@ class FacultyService:
 
 
     #    Update faculty        
-    async def update_faculty(self,faculty_id:int,data:FacultyUpdate)-> list[dict]:
-        faculty=await self.repo.get_faculty_by_id(faculty_id)
+    async def update_faculty(self,id:int,data:FacultyUpdate)-> list[dict]:
+        faculty=await self.repo.get_faculty_by_id(id)
         if not faculty:
             raise HTTPException(
             status_code=404,
             detail="Not found this faculty!"
             )
-        new_name=data.name if  data.name else  faculty["name"]
-        new_code=data.code if  data.code else  faculty["code"]
-        await self.repo.update_faculty(faculty_id,new_name,new_code)
+        new_name=data.name or faculty["name"]
+        new_code=data.code or faculty["code"]
+        await self.repo.update_faculty(id,new_name,new_code)
         return {"message":"Changed Faculty"}
 
 
@@ -63,15 +61,26 @@ class FacultyService:
 
 
     #.     Delete faculty
-    async def delete_faculty(self,faculty_id):
-        faculty= await self.repo.get_faculty_by_id(faculty_id)
+    async def delete_faculty(self,id):
+        faculty= await self.repo.get_faculty_by_id(id)
+        if  faculty:
+            raise HTTPException(
+            status_code=404,
+            detail="Not found that faculty!!!"
+        )
+        await self.repo.delete_faculty(id)
+        return {"message":"Succesfull delleted this faculty."}
+    
+
+    async def get_faculty_department(self,id:int)->list[dict]:
+        faculty= await self.repo.get_faculty_by_id(id)
+        print(faculty)
         if not faculty:
             raise HTTPException(
             status_code=404,
             detail="Not found that faculty!!!"
         )
-        await self.repo.delete_faculty(faculty_id)
-        return {"message":"Succesfull delleted this faculty."}
+        return await self.dp_repo.get_all_department_faculty(id)
 
 
 

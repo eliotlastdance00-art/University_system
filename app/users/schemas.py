@@ -25,4 +25,3 @@ class UserRoleCreate(BaseModel):
     faculty_id:int | None=None
     department_id:int |None=None
     section_id: int | None = None
-    

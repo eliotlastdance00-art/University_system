@@ -14,7 +14,7 @@ async def get_current_user(
     if payload := decode_token(token):
         return payload
     else:
-         raise HTTPException(status_code=401, detail="Wrong token or finshed time")
+        raise HTTPException(status_code=401, detail="Wrong token or finished time")
     return payload
 
 # Diňe Admin

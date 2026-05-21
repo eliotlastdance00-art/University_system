@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.post(
-    "",
+    "/",
     response_model = UserResponse,
     status_code    = status.HTTP_201_CREATED,
     summary        = "Create user",
@@ -26,7 +26,7 @@ async def create_user(
 
 
 @router.get(
-    "",
+    "/",
     response_model = list[UserResponse],
     summary        = "Get all users",
     description    = "Retrieve a list of all registered users in the system."
@@ -39,50 +39,71 @@ async def get_all_users(
     return await service.get_all()
 
 
+
+
+@router.get("/search")
+async def search_users(
+    name: str = None,
+    role: str = None,
+    faculty_id: int = None,
+    department_id: int = None,
+    section_id: int = None,
+    current_user: dict = Depends(admin_required),
+    conn: Connection = Depends(get_db)
+):
+    service = UserService(conn)
+    return await service.search_users(
+        name=name,
+        role=role,
+        faculty_id=faculty_id,
+        department_id=department_id,
+        section_id=section_id
+    )
+
 @router.get(
-    "/{user_id}",
+    "/{id}",
     response_model = UserResponse,
     summary        = "Get user by ID",
     description    = "Fetch details of a specific user using their unique ID."
 )
 async def get_user(
-    user_id:      int,
+    id:      int,
     current_user: dict       = Depends(admin_required),
     conn:         Connection = Depends(get_db)
 ) -> UserResponse:
     service = UserService(conn)
-    return await service.get_user_by_id(user_id)
+    return await service.get_user_by_id(id)
 
 
 @router.put(
-    "/{user_id}",
+    "/{id}",
     response_model = dict,
     summary        = "Update user",
     description    = "Update user fields. Keeps original values if fields are omitted in request."
 )
 async def update_user(
-    user_id:      int,
+    id:      int,
     data:         UserUpdate,
     current_user: dict       = Depends(admin_required),
     conn:         Connection = Depends(get_db)
 ) -> dict:
     service = UserService(conn)
-    return await service.update_user(user_id, data)
+    return await service.update_user(id, data)
 
 
 @router.delete(
-    "/{user_id}",
+    "/{id}",
     response_model = dict,
     summary        = "Delete user",
     description    = "Permanently remove a user account from the database."
 )
 async def delete_user(
-    user_id:      int,
+    id:      int,
     current_user: dict       = Depends(admin_required),
     conn:         Connection = Depends(get_db)
 ) -> dict:
     service = UserService(conn)
-    return await service.delete_user(user_id)
+    return await service.delete_user(id)
 
 
 @router.post(
@@ -136,3 +157,15 @@ async def delete_role(
 ) -> dict:
     service = UserService(conn)
     return await service.delete_role(user_id, role_id)
+
+
+@router.post("/{user_id}/assign-section")
+async def assign_section(
+    user_id: int,
+    section_id: int, 
+    current_user: dict = Depends(admin_required),     
+    conn=Depends(get_db)
+):
+    service = UserService(conn)
+    return await service.assign_section(user_id, section_id)
+

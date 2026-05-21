@@ -1,5 +1,4 @@
 from aiomysql import DictCursor
-
 from app.core.security import hash_password
 
 
@@ -15,15 +14,21 @@ class UsersRepository:
             return await self.conn.commit()
 
     async def get_all_users(self):
-        sql = "SELECT * FROM users"
+        sql = """
+        SELECT 
+        u.id, u.full_name, u.email, u.is_active,
+        up.faculty_id, up.department_id, up.section_id
+        FROM users u
+        LEFT JOIN user_profiles up ON u.id = up.user_id
+        """
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql)
             return await cursor.fetchall()
 
-    async def get_by_id_users(self, user_id: int):
+    async def get_by_id_users(self, id: int):
         sql = "SELECT id,full_name,email,is_active FROM users WHERE id=%s"
         async with self.conn.cursor(DictCursor) as cursor:
-            await cursor.execute(sql, (user_id,))
+            await cursor.execute(sql, (id,))
             return await cursor.fetchone()
 
     async def get_by_email_users(self, email: str):
@@ -33,18 +38,18 @@ class UsersRepository:
             return await cursor.fetchone()
 
     async def update_user(
-        self, user_id: int, full_name: str, email: str, password: str, is_active: bool
+        self, id: int, full_name: str, email: str, password: str, is_active: bool
     ):
         hash_pass = hash_password(password)
         sql = "UPDATE users SET  full_name=%s,email=%s,password=%s,is_active=%s WHERE id=%s"
         async with self.conn.cursor(DictCursor) as cursor:
-            await cursor.execute(sql, (full_name, email, hash_pass, is_active, user_id))
+            await cursor.execute(sql, (full_name, email, hash_pass, is_active, id))
         return await self.conn.commit()
 
-    async def delete_user(self, user_id: int):
+    async def delete_user(self, id: int):
         sql = "DELETE FROM users WHERE id=%s"
         async with self.conn.cursor() as cursor:
-            await cursor.execute(sql, (user_id,))
+            await cursor.execute(sql, (id,))
         return await self.conn.commit()
 
     async def role_by_id(self, role_id: int):
@@ -92,3 +97,69 @@ class UsersRepository:
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (user_id, role_id))
         await self.conn.commit()
+
+
+    async def search_users(
+            self,
+            name: str = None,
+            role: str = None,
+            faculty_id: int = None,
+            department_id: int = None,
+            section_id: int = None
+    ) -> list[dict]:
+        sql = """
+        SELECT 
+            u.id,
+            u.full_name,
+            u.email,
+            u.is_active,
+            up.faculty_id,
+            up.department_id,
+            up.section_id,
+            r.name as role
+        FROM users u
+        LEFT JOIN user_profiles up ON u.id = up.user_id
+        LEFT JOIN user_roles ur ON u.id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
+        WHERE 1=1
+    """
+        params = []
+        if name:
+            sql += " AND u.full_name LIKE %s"
+            params.append(f"%{name}%")
+        if role:
+            sql += " AND ur.role_id=%s"
+            params.append(role)
+        if department_id:
+            sql += " AND up.department_id=%s"
+            params.append(department_id)
+        if faculty_id:
+            sql += " AND up.faculty_id=%s"
+            params.append(faculty_id)
+        if section_id:
+            sql += " AND up.section_id=%s"
+            params.append(section_id)
+
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql, params)
+            return await cursor.fetchall()
+
+    async def get_section_by_id(self, section_id: int):
+        sql = "SELECT id, capacity FROM sections WHERE id = %s"
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql, (section_id,))
+            return await cursor.fetchone()
+
+    async def get_section_student_count(self, section_id: int):
+        sql = "SELECT COUNT(*) as total FROM user_profiles WHERE section_id = %s"
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql, (section_id,))
+            return await cursor.fetchone()
+
+    async def update_user_section(self, user_id: int, section_id: int):
+        sql = "UPDATE user_profiles SET section_id = %s WHERE user_id = %s"
+        async with self.conn.cursor() as cursor:
+            await cursor.execute(sql, (section_id, user_id))
+        await self.conn.commit()
+
+

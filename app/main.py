@@ -16,7 +16,7 @@ from app.core.database import close_pool, pool_create
 from app.department.router import router as department_router
 from app.faculty.router import router as faculty_router
 from app.users.router import router as user_router
-
+from app.profile.router import router as profile_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -68,6 +68,9 @@ app.include_router(
 )
 app.include_router(
     cohort_router, prefix="/University_system/v1/cohorts", tags=["Cohorts"]
+)
+app.include_router(
+    profile_router, prefix="/University_system/v1/profile", tags=["Profile"]
 )
 
 

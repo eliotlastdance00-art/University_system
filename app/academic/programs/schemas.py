@@ -8,7 +8,6 @@ class ProgramCreate(BaseModel):
 
 
 class ProgramUpdate(BaseModel):
-    id: int
     name: str | None = None
     code: str | None = None
     department_id: int | None = None

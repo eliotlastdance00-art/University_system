@@ -21,7 +21,7 @@ class ProgramRepository:
             )
         await self.conn.commit()
 
-    async def update(self, data: ProgramUpdate):
+    async def update(self,id:int, data: ProgramUpdate):
         async with self.conn(DictCursor) as cur:
             await cur.execute(
                 """
@@ -31,7 +31,7 @@ class ProgramRepository:
                                 name=%s,code=%s,department_id=%s
                                 WHERE id=%s
                             """,
-                (data.name, data.code, data.department_id, data.id),
+                (data.name, data.code, data.department_id, id),
             )
             await self.conn.commit()
 
@@ -65,3 +65,8 @@ class ProgramRepository:
         async with self.conn(DictCursor) as cur:
             await cur.execute("DELETE FROM programs WHERE id=%s", (id,))
         await self.conn.commit()
+
+    async def get_department_programs(self,department_id:int)->list[dict]:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute("SELECT * FROM programs WHERE department_id=%s",(department_id,))  
+            await cur.fetchall()  

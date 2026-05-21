@@ -33,21 +33,21 @@ async def get_department_subjects(
     return await service.get_subject_department_all(conn, department_id)
 
 # ID boýunça
-@router.get("/{subject_id}", response_model=dict)
+@router.get("/{id}", response_model=dict)
 async def get_subject(
     subject_id: int,
     conn: Connection = Depends(get_db)
 )-> dict:
-    return await service.get_subject_id(conn, subject_id)
+    return await service.get_subject_id(conn, id)
 
 # Üýtget
-@router.put("/{subject_id}", response_model=dict)
+@router.put("/{id}", response_model=dict)
 async def update_subject(
     subject_id: int,
     data: SubjectUpdate,
     conn: Connection = Depends(get_db)
 ):
-    return await service.update_subject(conn, data, subject_id)
+    return await service.update_subject(conn, data, id)
 
 
 

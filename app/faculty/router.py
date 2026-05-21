@@ -1,96 +1,90 @@
-from fastapi import APIRouter,Depends
 from aiomysql import Connection
+from fastapi import APIRouter, Depends
+
+from app.core.database import get_db
+from app.core.dependencies import admin_or_dean, admin_required
 from app.faculty.service import FacultyService
-from .schemas import FacultyCreate,FacultyResponse,FacultyUpdate
-from  app.core.database import get_db
-from app.core.dependencies import (
-    admin_required,
-    admin_or_dean
+
+from .schemas import FacultyCreate, FacultyResponse, FacultyUpdate
+
+router = APIRouter()
+
+
+@router.post(
+    "/",
+    response_model=list[FacultyResponse],
+    summary="Faculty create",
+    description="Admin or dean required",
 )
-
-router=APIRouter()
-
-
-@router.post( "/",
-    response_model = list[FacultyResponse],
-    summary = "Faculty create",
-    description = "Admin or dean required")
 async def create_faculty(
-    data:FacultyCreate,
+    data: FacultyCreate,
     current_user: dict = Depends(admin_or_dean),
-    conn:Connection=Depends(get_db)
-)-> list[dict]:
+    conn: Connection = Depends(get_db),
+) -> list[dict]:
     service = FacultyService(conn)
     return await service.create_faculty(data)
 
 
-
-
-
 @router.get(
-        "/",
-        response_model=list[FacultyResponse],
-        summary="Call all faculties",
-        description="Admin required just"
-        )
+    "/",
+    response_model=list[FacultyResponse],
+    summary="Call all faculties",
+    description="Admin required just",
+)
 async def get_all_faculties(
-    current_user: dict = Depends(admin_required),
-    conn:Connection=Depends(get_db)
-   
-)-> list[dict]:
+    current_user: dict = Depends(admin_required), conn: Connection = Depends(get_db)
+) -> list[dict]:
     service = FacultyService(conn)
     return await service.get_all_faculty()
 
 
-
-
-
 @router.get(
-        "/{faculty_id}",
-        response_model=FacultyResponse,
-        summary="Call all faculties",
-        description="Admin required just"
-        )
+    "/{id}",
+    response_model=FacultyResponse,
+    summary="Call id faculties",
+    description="Admin required just",
+)
 async def get_faculty(
-    faculty_id:int,
+    id: int,
     current_user: dict = Depends(admin_required),
-    conn:Connection=Depends(get_db)
-    )-> list[dict]:
+    conn: Connection = Depends(get_db),
+) -> list[dict]:
     service = FacultyService(conn)
-    return await service.get_faculty_id(faculty_id)
-
-
-
+    return await service.get_faculty_id(id)
 
 
 @router.put(
-        "/",
-        response_model=dict,
-        summary="Update faculties id",
-        description="Admin required just"
-        )
+    "/",
+    response_model=dict,
+    summary="Update faculties id",
+    description="Admin required just",
+)
 async def update_faculty(
-    faculty_id:int,
-    data:FacultyUpdate,
+    id: int,
+    data: FacultyUpdate,
     current_user: dict = Depends(admin_required),
-    conn:Connection=Depends(get_db),
-)-> list[dict]:
+    conn: Connection = Depends(get_db),
+) -> list[dict]:
     service = FacultyService(conn)
-    return await service.update_faculty(faculty_id,data)
-
+    return await service.update_faculty(id, data)
 
 
 @router.delete(
-        "/{faculty_id}",
-        response_model=dict,
-        summary="Delete faculties",
-        description="Admin required just"
-
-        )
+    "/{id}",
+    response_model=dict,
+    summary="Delete faculties",
+    description="Admin required just",
+)
 async def delete_faculty(
-    faculty_id:int,
-    conn:Connection=Depends(get_db),
+    id: int,
+    conn: Connection = Depends(get_db),
     current_user: dict = Depends(admin_required),
-    )->list[dict]:
+) -> list[dict]:
     service = FacultyService(conn)
-    return await service.delete_faculty(faculty_id)
+    return await service.delete_faculty(id)
+
+
+@router.get("/{id}/departments", response_model=list[dict])
+async def get_faculty_department(id: int, conn: Connection = Depends(get_db)):
+    service = FacultyService(conn)
+    return await service.get_faculty_department(id)

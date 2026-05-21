@@ -36,24 +36,25 @@ class FacultyRepository:
 
     # -----------Get{id}---------------
 
-    async def get_faculty_by_id(self, faculty_id: int) -> list[dict]:
+    async def get_faculty_by_id(self, id: int) -> list[dict]:
         sql = "SELECT id,name,code FROM faculties WHERE id=%s"
         async with self.conn.cursor(DictCursor) as cursor:
-            await cursor.execute(sql, (faculty_id,))
-            return await cursor.fetchone()
+            await cursor.execute(sql, (id,))
+            result=await cursor.fetchone()
+        return result    
 
     # -----------Update Faculty-----------
 
-    async def update_faculty(self, faculty_id: int, name: str, code: str) -> list[dict]:
+    async def update_faculty(self, id: int, name: str, code: str) -> list[dict]:
         sql = "UPDATE faculties set name=%s,code=%s where id=%s"
         async with self.conn.cursor() as cursor:
-            await cursor.execute(sql, (name, code, faculty_id))
+            await cursor.execute(sql, (name, code,id))
             await self.conn.commit()
 
     # -----------Delete Faculty--------------
 
-    async def delete_faculty(self, faculty_id: int) -> list[dict]:
+    async def delete_faculty(self, id: int) -> list[dict]:
         sql = "DELETE FROM faculties WHERE id=%s"
         async with self.conn.cursor() as cursor:
-            await cursor.execute(sql, (faculty_id))
+            await cursor.execute(sql, (id))
             await self.conn.commit()
