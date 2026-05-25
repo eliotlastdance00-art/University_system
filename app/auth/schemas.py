@@ -1,5 +1,6 @@
 from pydantic import BaseModel,EmailStr
 from datetime import datetime
+from typing import Optional
 
 class LoginRequest(BaseModel):
     email:EmailStr
@@ -18,4 +19,19 @@ class SaveRefreshToken(BaseModel):
     token:str
     expires_at:datetime  
     is_revoked:bool = False
-      
+
+
+class Settings(BaseModel):
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USER: str
+    SMTP_PASS: str
+    SMTP_TLS: bool = True
+
+
+class SendOtpRequest(BaseModel):
+    email:EmailStr  
+class VerifyOtpRequest(BaseModel):
+    email:EmailStr
+    otp: Optional[str] = None    
+    
