@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #060910; font-family: 'Courier New', Courier, monospace;">
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+        style="background: linear-gradient(135deg, #060910 0%, #0d1117 50%, #060910 100%); min-height: 100vh;">
+        <tr>
+            <td align="center" style="padding: 48px 16px;">
+
+                <!-- Main Card -->
+                <table role="presentation" width="100%" style="max-width: 520px;" cellspacing="0" cellpadding="0" border="0">
+
+                    <!-- Top accent line -->
+                    <tr>
+                        <td style="height: 2px; background: linear-gradient(90deg, transparent, #6366f1, #06b6d4, #6366f1, transparent);"></td>
+                    </tr>
+
+                    <!-- Card Body -->
+                    <tr>
+                        <td style="background-color: #0d1117; border: 1px solid #1e2d3d; border-top: none; border-radius: 0 0 16px 16px; padding: 48px 40px;">
+
+                            <!-- Header -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                <tr>
+                                    <td style="padding-bottom: 36px;">
+
+                                        <!-- Icon -->
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                            <tr>
+                                                <td style="
+                                                    width: 52px;
+                                                    height: 52px;
+                                                    background: linear-gradient(135deg, #1e1b4b, #312e81);
+                                                    border-radius: 12px;
+                                                    border: 1px solid #4338ca;
+                                                    text-align: center;
+                                                    vertical-align: middle;
+                                                    font-size: 24px;
+                                                    line-height: 52px;">
+                                                    &#x26BF;
+                                                </td>
+                                                <td style="padding-left: 14px; vertical-align: middle;">
+                                                    <span style="font-size: 11px; color: #4b5563; letter-spacing: 3px; text-transform: uppercase; display: block;">University</span>
+                                                    <span style="font-size: 15px; color: #e2e8f0; letter-spacing: 1px; font-weight: 600;">Digital Ecosystem</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <!-- Divider -->
+                                        <div style="height: 1px; background: linear-gradient(90deg, #1e2d3d, transparent); margin-top: 28px;"></div>
+                                    </td>
+                                </tr>
+
+                                <!-- Title -->
+                                <tr>
+                                    <td style="padding-bottom: 8px;">
+                                        <p style="margin: 0; font-size: 11px; color: #6366f1; letter-spacing: 4px; text-transform: uppercase;">AUTHENTICATION</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-bottom: 28px;">
+                                        <h1 style="margin: 0; font-size: 28px; color: #f1f5f9; letter-spacing: -0.5px; font-weight: 700; line-height: 1.2;">
+                                            Verify your<br>
+                                            <span style="background: linear-gradient(90deg, #6366f1, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">identity</span>
+                                        </h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-bottom: 36px;">
+                                        <p style="margin: 0; font-size: 14px; color: #64748b; line-height: 1.7;">
+                                            A one-time verification code has been generated for your account. Enter it to continue.
+                                        </p>
+                                    </td>
+                                </tr>
+
+                                <!-- OTP Box -->
+                                <tr>
+                                    <td style="padding-bottom: 36px;">
+                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                            <tr>
+                                                <td style="
+                                                    background: linear-gradient(135deg, #0f1923, #131f2e);
+                                                    border: 1px solid #1e3a5f;
+                                                    border-radius: 12px;
+                                                    padding: 28px;
+                                                    text-align: center;
+                                                    position: relative;
+                                                ">
+                                                    <p style="margin: 0 0 10px 0; font-size: 10px; color: #374151; letter-spacing: 4px; text-transform: uppercase;">YOUR CODE</p>
+
+                                                    <!-- OTP Digits -->
+                                                    <p style="
+                                                        margin: 0 0 12px 0;
+                                                        font-size: 44px;
+                                                        font-weight: 700;
+                                                        letter-spacing: 18px;
+                                                        color: #e0f2fe;
+                                                        text-shadow: 0 0 30px rgba(99, 102, 241, 0.6), 0 0 60px rgba(6, 182, 212, 0.2);
+                                                        font-family: 'Courier New', Courier, monospace;
+                                                        padding-left: 18px;
+                                                    ">{{ otp }}</p>
+
+                                                    <!-- Expiry badge -->
+                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                                                        <tr>
+                                                            <td style="
+                                                                background-color: #1a1f2e;
+                                                                border: 1px solid #2d3748;
+                                                                border-radius: 20px;
+                                                                padding: 5px 14px;
+                                                                font-size: 11px;
+                                                                color: #94a3b8;
+                                                                letter-spacing: 1px;
+                                                            ">
+                                                                &#x23F1; expires in <strong style="color: #f59e0b;">{{ expire_minutes }} min</strong>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <!-- Warning box -->
+                                <tr>
+                                    <td style="padding-bottom: 36px;">
+                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                            <tr>
+                                                <td style="
+                                                    background-color: #0c1a0c;
+                                                    border: 1px solid #14532d;
+                                                    border-left: 3px solid #22c55e;
+                                                    border-radius: 8px;
+                                                    padding: 14px 18px;
+                                                    font-size: 12px;
+                                                    color: #4b5563;
+                                                    line-height: 1.6;
+                                                ">
+                                                    <strong style="color: #86efac;">&#x2713; Security Note:</strong>
+                                                    If you didn't request this code, ignore this email. Your account is safe.
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <!-- Divider -->
+                                <tr>
+                                    <td style="padding-bottom: 28px;">
+                                        <div style="height: 1px; background: linear-gradient(90deg, transparent, #1e2d3d, transparent);"></div>
+                                    </td>
+                                </tr>
+
+                                <!-- Footer -->
+                                <tr>
+                                    <td>
+                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                            <tr>
+                                                <td style="font-size: 11px; color: #374151; line-height: 1.6;">
+                                                    &copy; 2026 University Digital Ecosystem<br>
+                                                    <span style="color: #1f2937; font-size: 10px; letter-spacing: 1px;">AUTOMATED MESSAGE — DO NOT REPLY</span>
+                                                </td>
+                                                <td align="right" style="font-size: 10px; color: #1f2937; letter-spacing: 2px; text-transform: uppercase; vertical-align: bottom;">
+                                                    SECURE &#x1F512;
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Bottom accent line -->
+                    <tr>
+                        <td style="height: 1px; background: linear-gradient(90deg, transparent, #1e2d3d, transparent);"></td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

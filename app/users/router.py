@@ -18,7 +18,6 @@ router = APIRouter()
 )
 async def create_user(
     data:         UserCreate,
-    current_user: dict       = Depends(admin_required),
     conn:         Connection = Depends(get_db)
 ) -> UserResponse:
     service = UserService(conn)

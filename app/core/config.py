@@ -13,6 +13,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES:int
     REFRESH_TOKEN_EXPIRE_DAYS:int
 
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USER: str
+    SMTP_PASS: str
+    SMTP_TLS: bool = True
+    OTP_EXPIRE_MINUTES:int
+
+
     class Config:
         env_file=".env"
         extra="ignore"
