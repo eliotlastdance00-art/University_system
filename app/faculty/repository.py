@@ -40,15 +40,15 @@ class FacultyRepository:
         sql = "SELECT id,name,code FROM faculties WHERE id=%s"
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql, (id,))
-            result=await cursor.fetchone()
-        return result    
+            result = await cursor.fetchone()
+        return result
 
     # -----------Update Faculty-----------
 
     async def update_faculty(self, id: int, name: str, code: str) -> list[dict]:
         sql = "UPDATE faculties set name=%s,code=%s where id=%s"
         async with self.conn.cursor() as cursor:
-            await cursor.execute(sql, (name, code,id))
+            await cursor.execute(sql, (name, code, id))
             await self.conn.commit()
 
     # -----------Delete Faculty--------------

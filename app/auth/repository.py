@@ -36,7 +36,6 @@ class AuthRepository:
                 sql, (data.user_id, data.token, data.expires_at, data.is_revoked)
             )
         await self.conn.commit()
-        
 
     async def get_refresh_token(self, token: str) -> list[dict]:
         sql = """SELECT
@@ -100,8 +99,9 @@ class AuthRepository:
             await self.conn.commit()
             return cur.rowcount > 0
 
-
-    async def find_id(self,department:str):
+    async def find_id(self, department: str):
         async with self.conn.cursor(DictCursor) as cur:
-            await cur.execute("SELECT id,faculty_id FROM departments WHERE name=%s",(department))  
-            return await cur.fetchall() 
+            await cur.execute(
+                "SELECT id,faculty_id FROM departments WHERE name=%s", (department)
+            )
+            return await cur.fetchall()

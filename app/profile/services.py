@@ -13,15 +13,11 @@ class ProfileService:
         if not result:
             raise HTTPException(status_code=404, detail="Profile not found")
         return {k: v for k, v in result.items() if v is not None}
-    
 
     async def update_profile_me(self, data: UpdateProfile):
         email_exists = await self.repo.get_profile_by_email(data.email)
         if email_exists and email_exists["id"] != data.id:
-            raise HTTPException(
-                status_code=400, 
-                detail="Email already in use"
-            )
+            raise HTTPException(status_code=400, detail="Email already in use")
         result = await self.repo.get_profile_me(data.id)
         if not result:
             raise HTTPException(status_code=404, detail="Profile not found")

@@ -1,13 +1,13 @@
-import aiomysql 
+import aiomysql
+
 from app.core.config import settings
 
+pool = None
 
-
-pool=None
 
 async def pool_create():
     global pool
-    pool=await aiomysql.create_pool(
+    pool = await aiomysql.create_pool(
         host=settings.DB_HOST,
         port=settings.DB_PORT,
         user=settings.DB_USER,
@@ -15,9 +15,10 @@ async def pool_create():
         db=settings.DB_NAME,
         autocommit=False,
         minsize=1,
-        maxsize=10
-
+        maxsize=10,
     )
+
+
 async def close_pool():
     global pool
     if pool:
@@ -34,4 +35,3 @@ async def get_db():
             raise e
         else:
             await conn.commit()
-

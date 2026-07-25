@@ -1,5 +1,7 @@
 from fastapi import HTTPException
+
 from app.academic.programs.repository import ProgramRepository
+
 from .repository import DepartmentRepository
 from .schemas import DepartmentCreate, DepartmentUpdate
 
@@ -7,7 +9,7 @@ from .schemas import DepartmentCreate, DepartmentUpdate
 class DepartmentService:
     def __init__(self, conn):
         self.repo = DepartmentRepository(conn)
-        self.prog_repo=ProgramRepository(conn)
+        self.prog_repo = ProgramRepository(conn)
 
     async def deparment_create(self, data: DepartmentCreate):
         existing = await self.repo.get_department_by_name(data.name)
@@ -79,33 +81,21 @@ class DepartmentService:
                 detail="IT NOT FOUND DEPARTMENT",
             )
         return existing
-    
 
-    async def get_department_programs(self,department_id:int)->list[dict]:
-        existing= await self.repo.get_department_by_id(id)
+    async def get_department_programs(self, department_id: int) -> list[dict]:
+        existing = await self.repo.get_department_by_id(id)
         if not existing:
-            raise HTTPException(
-                status_code=404,
-                deatil="Not found department"
-            )
+            raise HTTPException(status_code=404, deatil="Not found department")
         await self.prog_repo.get_department_programs(department_id)
 
-
-    async def get_department_teachers(self,department_id:int)->list[dict]:
-        existing=await self.repo.get_department_by_id(department_id)
+    async def get_department_teachers(self, department_id: int) -> list[dict]:
+        existing = await self.repo.get_department_by_id(department_id)
         if not existing:
-            raise HTTPException(
-                status_code=404,
-                deatil="Not found department"
-            )
+            raise HTTPException(status_code=404, deatil="Not found department")
         await self.repo.get_department_teachers(department_id)
 
-
-    async def get_department_students(self,department_id:int)->list[dict]:
-        existing=await self.repo.get_department_by_id(department_id)
+    async def get_department_students(self, department_id: int) -> list[dict]:
+        existing = await self.repo.get_department_by_id(department_id)
         if not existing:
-            raise HTTPException(
-                status_code=404,
-                deatil="Not found department"
-            )
-        await self.repo.get_department_students(department_id)    
+            raise HTTPException(status_code=404, deatil="Not found department")
+        await self.repo.get_department_students(department_id)

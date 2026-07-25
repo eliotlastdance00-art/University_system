@@ -1,11 +1,11 @@
-from aiomysql import  DictCursor
+from aiomysql import DictCursor
 
 
 class DepartmentRepository:
     def __init__(self, conn):
         self.conn = conn
 
-    #---------------Get all department-faculty------------
+    # ---------------Get all department-faculty------------
     async def get_all_department_faculty(self, id: int) -> list[dict]:
         sql = """
             SELECT 
@@ -44,7 +44,7 @@ class DepartmentRepository:
             result = await cursor.fetchall()
         return result
 
-    #-----------------GET {id}-----------------------
+    # -----------------GET {id}-----------------------
     async def get_department_by_id(self, id: int) -> dict | None:
         sql = """
             SELECT  
@@ -60,7 +60,7 @@ class DepartmentRepository:
             await cursor.execute(sql, (id,))
             return await cursor.fetchone()
 
-    #-----------------GET {name}-----------------------
+    # -----------------GET {name}-----------------------
     async def get_department_by_name(self, name: str) -> dict | None:
         sql = """
             SELECT *
@@ -72,14 +72,14 @@ class DepartmentRepository:
             result = await cursor.fetchone()
         return result
 
-    #-----------------POST DEPARTMENT---------------------
+    # -----------------POST DEPARTMENT---------------------
     async def create_department(self, name: str, faculty_id: int) -> None:
         sql = "INSERT INTO departments(name, faculty_id) VALUES (%s, %s)"
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (name, faculty_id))
         await self.conn.commit()
 
-    #----------------PUT DEPARTMENT-------------------
+    # ----------------PUT DEPARTMENT-------------------
     async def update_department(
         self,
         id: int,
@@ -88,19 +88,20 @@ class DepartmentRepository:
     ) -> None:
         sql = "UPDATE departments SET name = %s, faculty_id = %s WHERE id = %s"
         async with self.conn.cursor() as cursor:
-            await cursor.execute(sql, (name, faculty_id,id))
+            await cursor.execute(sql, (name, faculty_id, id))
         await self.conn.commit()
 
-    #--------------DELETE DEPARTMENT--------------------
+    # --------------DELETE DEPARTMENT--------------------
     async def delete_department(self, id: int) -> None:
         sql = "DELETE FROM departments WHERE id = %s"
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (id,))
         await self.conn.commit()
 
-    async def get_department_teachers(self,department_id:int)->list[dict]:
+    async def get_department_teachers(self, department_id: int) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
-            await cur.execute("""
+            await cur.execute(
+                """
                             SELECT
                                 u.id,
                                 u.full_name,
@@ -110,12 +111,15 @@ class DepartmentRepository:
                                 JOIN user_roles    ur ON u.id=ur.user_id
                                 JOIN roles         r  ON ur.role_id=r.id
                                 WHERE up.`department_id`=1 AND r.name="teacher"
-                            """,(department_id,))
-            await cur.fetchall()    
+                            """,
+                (department_id,),
+            )
+            await cur.fetchall()
 
-    async def get_department_students(self,department_id:int)->list[dict]:
+    async def get_department_students(self, department_id: int) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
-            await cur.execute("""
+            await cur.execute(
+                """
                             SELECT
                                 u.id,
                                 u.full_name,
@@ -125,5 +129,7 @@ class DepartmentRepository:
                                 JOIN user_roles    ur ON u.id=ur.user_id
                                 JOIN roles         r  ON ur.role_id=r.id
                                 WHERE up.`department_id`=%s AND r.name="student"
-                            """,(department_id,))
-            await cur.fetchall()            
+                            """,
+                (department_id,),
+            )
+            await cur.fetchall()
