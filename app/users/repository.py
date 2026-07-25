@@ -46,6 +46,14 @@ class UsersRepository:
             await cursor.execute(sql, (full_name, email, hash_pass, is_active, id))
         return await self.conn.commit()
 
+    async def update_user_without_password(
+        self, id: int, full_name: str, email: str, is_active: bool
+    ):
+        sql = "UPDATE users SET full_name=%s, email=%s, is_active=%s WHERE id=%s"
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql, (full_name, email, is_active, id))
+        return await self.conn.commit()
+
     async def delete_user(self, id: int):
         sql = "DELETE FROM users WHERE id=%s"
         async with self.conn.cursor() as cursor:
@@ -56,6 +64,12 @@ class UsersRepository:
         sql = "SELECT id,name FROM roles WHERE id=%s"
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql, (role_id,))
+            return await cursor.fetchone()
+
+    async def get_role_by_name(self, name: str):
+        sql = "SELECT id, name FROM roles WHERE name=%s"
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql, (name,))
             return await cursor.fetchone()
 
     async def get_user_role(self, user_id: int, role_id: int):

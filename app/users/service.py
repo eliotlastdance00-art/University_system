@@ -52,16 +52,18 @@ class UserService:
             data.full_name if data.full_name is not None else current_user["full_name"]
         )
         new_email = data.email if data.email is not None else current_user["email"]
-        new_password = (
-            data.password if data.password is not None else current_user["password"]
-        )
         new_is_active = (
             data.is_active if data.is_active is not None else current_user["is_active"]
         )
 
-        await self.repo.update_user(
-            id, new_full_name, new_email, new_password, new_is_active
-        )
+        if data.password is not None:
+            await self.repo.update_user(
+                id, new_full_name, new_email, data.password, new_is_active
+            )
+        else:
+            await self.repo.update_user_without_password(
+                id, new_full_name, new_email, new_is_active
+            )
         return {"message": "Changed user ✅"}
 
     async def delete_user(self, id: int) -> dict:
@@ -137,7 +139,11 @@ class UserService:
         if not user:
             raise HTTPException(404, "Not found user")
 
-        is_student = await self.repo.get_user_role(user_id, "student")
+        role = await self.repo.get_role_by_name("student")
+        if not role:
+            raise HTTPException(400, "Student role not found in system")
+            
+        is_student = await self.repo.get_user_role(user_id, role["id"])
         if not is_student:
             raise HTTPException(400, "This user is not a student")
 
