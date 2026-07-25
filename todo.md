@@ -18,3 +18,13 @@
 - [ ] Add `pytest` configuration and setup a test database fixture.
 - [ ] Write unit tests for all `service.py` files (mocking the repository).
 - [ ] Write integration tests for API endpoints (`router.py`) using `TestClient`.
+
+## Grade Feature Implementation
+- [x] Phase 1: Documentation (Update ARCHITECTURE.md, create CLAUDE.md, update TODO.md).
+- [x] Phase 2: Database Grade Table (Design `Grade` model, create migration).
+- [x] Phase 3: Audit Log (Design `AuditLog` table, hook into Grade CRUD).
+- [x] Phase 4: Logging (Implement structured JSON logging for Grafana).
+- [x] Phase 5: Transactions & SQL Safety (Wrap Grade and AuditLog writes in a single transaction).
+- [x] Phase 6: Notifications (Implement/Fix Firebase FCM notifications).
+- [x] Phase 7: Exceptions, Handler, Middleware (Custom exceptions, centralized handler, middleware).
+- [x] Phase 8: Review Pass.

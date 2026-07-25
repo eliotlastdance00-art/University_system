@@ -21,3 +21,12 @@ The codebase is divided into modular domains under the `app/` directory (e.g., `
 2. **No ORM (Object-Relational Mapping)**: The system relies completely on raw SQL queries via `aiomysql`. While performant, maintaining large queries across multiple tables (like in `UsersRepository.search_users`) is error-prone and scales poorly.
 3. **Transaction Management**: The `get_db` dependency handles commit/rollback logic nicely, but complex transactions spanning multiple repository methods within a service must be carefully managed to avoid partial commits.
 4. **Hardcoded Role IDs and Role Lookups**: String identifiers are sometimes passed to methods expecting integers (e.g., `"student"` passed to a role checking function), highlighting a lack of centralized enumerations for system roles.
+
+## Grade Feature Design
+The new Grade feature will be implemented under the `app/academic/grades/` module.
+- **Controller Layer (`router.py`)**: Endpoints for creating, updating, deleting, and retrieving grades.
+- **Service Layer (`service.py`)**: Business logic (e.g., ensuring a student is enrolled before grading). Will enforce transaction safety.
+- **Data Access Layer (`repository.py`)**: `GradeRepository` and `AuditLogRepository`. Writes to `grades` and `audit_logs` will be wrapped in a single transaction.
+- **DTOs (`schemas.py`)**: Pydantic models for Grade requests/responses.
+- **Notifications**: Integrated into the service layer, failing gracefully without rolling back grades.
+- **Exception Handling**: Custom exceptions like `GradeNotFoundError` will be handled globally.
