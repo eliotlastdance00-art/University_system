@@ -4,18 +4,19 @@ from aiomysql import Connection
 from core.database import get_db
 from core.dependencies import get_current_user
 from fastapi import APIRouter, Depends
-from notifications.repository import (
+from notifications.service import NotificationService
+
+from app.notifications.repository import (
     AudienceRepository,
     DeviceTokenRepository,
     NotificationLogRepository,
 )
-from notifications.schemas import (
+from app.notifications.schemas import (
     BroadcastRequest,
     BroadcastResponse,
     DeviceTokenRegisterRequest,
     NotificationOut,
 )
-from notifications.service import NotificationService
 
 router = APIRouter()
 
