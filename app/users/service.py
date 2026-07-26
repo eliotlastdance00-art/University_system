@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 
 from .repository import UsersRepository
-from .schemas import UserCreate, UserResponse, UserUpdate
+from .schemas import UserCreate, UserResponse, UserUpdate,UserSearchFilters
 
 
 class UserService:
@@ -116,20 +116,12 @@ class UserService:
 
     async def search_users(
         self,
-        name: str = None,
-        role: str = None,
-        faculty_id: int = None,
-        department_id: int = None,
-        section_id: int = None,
+        filter:UserSearchFilters
     ) -> list[UserResponse]:
         return [
             UserResponse(**u)
             for u in await self.repo.search_users(
-                name=name,
-                role=role,
-                faculty_id=faculty_id,
-                department_id=department_id,
-                section_id=section_id,
+                filter,
             )
         ]
 

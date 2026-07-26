@@ -1,74 +1,71 @@
-from fastapi import APIRouter, Depends, status
+from typing import Annotated
+
 from aiomysql import Connection
+from fastapi import APIRouter, Depends, status
+
 from app.core.database import get_db
 from app.core.dependencies import admin_required
 
+from .schemas import (
+    UserCreate,
+    UserResponse,
+    UserRoleCreate,
+    UserSearchFilters,
+    UserUpdate,
+)
 from .service import UserService
-from .schemas import UserCreate, UserUpdate, UserResponse, UserRoleCreate
 
 router = APIRouter()
+
+CurrentUser = Annotated[dict, Depends(admin_required)]
+DbConnection = Annotated[Connection, Depends(get_db)]
 
 
 @router.post(
     "/",
-    response_model = UserResponse,
-    status_code    = status.HTTP_201_CREATED,
-    summary        = "Create user",
-    description    = "Register a new user. Email must be unique and password at least 8 characters."
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create user",
+    description="Register a new user. Email must be unique and password at least 8 characters.",
 )
-async def create_user(
-    data:         UserCreate,
-    conn:         Connection = Depends(get_db)
-) -> UserResponse:
+async def create_user(data: UserCreate, conn: DbConnection) -> UserResponse:
     service = UserService(conn)
     return await service.user_create(data)
 
 
 @router.get(
     "/",
-    response_model = list[UserResponse],
-    summary        = "Get all users",
-    description    = "Retrieve a list of all registered users in the system."
+    response_model=list[UserResponse],
+    summary="Get all users",
+    description="Retrieve a list of all registered users in the system.",
 )
 async def get_all_users(
-    current_user: dict       = Depends(admin_required),
-    conn:         Connection = Depends(get_db)
+    current_user: CurrentUser, conn: DbConnection
 ) -> list[UserResponse]:
     service = UserService(conn)
     return await service.get_all()
 
 
-
-
 @router.get("/search")
 async def search_users(
-    name: str = None,
-    role: str = None,
-    faculty_id: int = None,
-    department_id: int = None,
-    section_id: int = None,
-    current_user: dict = Depends(admin_required),
-    conn: Connection = Depends(get_db)
-):
+    current_user: CurrentUser,
+    conn: DbConnection,
+    filters: UserSearchFilters = Depends(),
+) -> list[UserResponse]:
     service = UserService(conn)
-    return await service.search_users(
-        name=name,
-        role=role,
-        faculty_id=faculty_id,
-        department_id=department_id,
-        section_id=section_id
-    )
+    return await service.search_users(filters)
+
 
 @router.get(
     "/{id}",
-    response_model = UserResponse,
-    summary        = "Get user by ID",
-    description    = "Fetch details of a specific user using their unique ID."
+    response_model=UserResponse,
+    summary="Get user by ID",
+    description="Fetch details of a specific user using their unique ID.",
 )
 async def get_user(
-    id:      int,
-    current_user: dict       = Depends(admin_required),
-    conn:         Connection = Depends(get_db)
+    id: int,
+    current_user: CurrentUser,
+    conn: DbConnection,
 ) -> UserResponse:
     service = UserService(conn)
     return await service.get_user_by_id(id)
@@ -76,15 +73,15 @@ async def get_user(
 
 @router.put(
     "/{id}",
-    response_model = dict,
-    summary        = "Update user",
-    description    = "Update user fields. Keeps original values if fields are omitted in request."
+    response_model=dict,
+    summary="Update user",
+    description="Update user fields. Keeps original values if fields are omitted in request.",
 )
 async def update_user(
-    id:      int,
-    data:         UserUpdate,
-    current_user: dict       = Depends(admin_required),
-    conn:         Connection = Depends(get_db)
+    id: int,
+    data: UserUpdate,
+    current_user: CurrentUser,
+    conn: DbConnection,
 ) -> dict:
     service = UserService(conn)
     return await service.update_user(id, data)
@@ -92,14 +89,14 @@ async def update_user(
 
 @router.delete(
     "/{id}",
-    response_model = dict,
-    summary        = "Delete user",
-    description    = "Permanently remove a user account from the database."
+    response_model=dict,
+    summary="Delete user",
+    description="Permanently remove a user account from the database.",
 )
 async def delete_user(
-    id:      int,
-    current_user: dict       = Depends(admin_required),
-    conn:         Connection = Depends(get_db)
+    id: int,
+    current_user: CurrentUser,
+    conn: DbConnection,
 ) -> dict:
     service = UserService(conn)
     return await service.delete_user(id)
@@ -107,36 +104,36 @@ async def delete_user(
 
 @router.post(
     "/{user_id}/roles",
-    response_model = dict,
-    summary        = "Assign role to user",
-    description    = "Assign a specific role and link academic structural IDs (faculty, department, section)."
+    response_model=dict,
+    summary="Assign role to user",
+    description="Assign a specific role and link academic structural IDs (faculty, department, section).",
 )
 async def post_role(
-    user_id:      int,
-    data:         UserRoleCreate,
-    current_user: dict       = Depends(admin_required),
-    conn:         Connection = Depends(get_db)
+    user_id: int,
+    data: UserRoleCreate,
+    current_user: CurrentUser,
+    conn: DbConnection,
 ) -> dict:
     service = UserService(conn)
     return await service.give_role(
-        user_id       = user_id,
-        role_id       = data.role_id,
-        faculty_id    = data.faculty_id,
-        department_id = data.department_id,
-        section_id    = data.section_id
+        user_id=user_id,
+        role_id=data.role_id,
+        faculty_id=data.faculty_id,
+        department_id=data.department_id,
+        section_id=data.section_id,
     )
 
 
 @router.get(
     "/{user_id}/roles",
-    response_model = list,
-    summary        = "Get user roles",
-    description    = "List all organizational and academic roles assigned to the specified user."
+    response_model=list,
+    summary="Get user roles",
+    description="List all organizational and academic roles assigned to the specified user.",
 )
 async def get_role(
-    user_id:      int,
-    current_user: dict       = Depends(admin_required),
-    conn:         Connection = Depends(get_db)
+    user_id: int,
+    current_user: CurrentUser,
+    conn: DbConnection,
 ) -> list:
     service = UserService(conn)
     return await service.show_roles(user_id)
@@ -144,15 +141,15 @@ async def get_role(
 
 @router.delete(
     "/{user_id}/roles/{role_id}",
-    response_model = dict,
-    summary        = "Remove role from user",
-    description    = "Revoke an assigned role from a user using path parameters."
+    response_model=dict,
+    summary="Remove role from user",
+    description="Revoke an assigned role from a user using path parameters.",
 )
 async def delete_role(
-    user_id:      int,
-    role_id:      int,
-    current_user: dict       = Depends(admin_required),
-    conn:         Connection = Depends(get_db)
+    user_id: int,
+    role_id: int,
+    current_user: CurrentUser,
+    conn: DbConnection,
 ) -> dict:
     service = UserService(conn)
     return await service.delete_role(user_id, role_id)
@@ -161,10 +158,9 @@ async def delete_role(
 @router.post("/{user_id}/assign-section")
 async def assign_section(
     user_id: int,
-    section_id: int, 
-    current_user: dict = Depends(admin_required),     
-    conn=Depends(get_db)
+    section_id: int,
+    current_user: CurrentUser,
+    conn: DbConnection,
 ):
     service = UserService(conn)
     return await service.assign_section(user_id, section_id)
-
