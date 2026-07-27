@@ -1,5 +1,5 @@
 # notifications/exceptions.py
-from core.exceptions import ForbiddenError, NotFoundError
+from app.core.exceptions import ForbiddenError, NotFoundError
 
 
 class UnauthorizedAudienceError(ForbiddenError):

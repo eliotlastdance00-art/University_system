@@ -1,3 +1,5 @@
+from datetime import time
+
 from fastapi import HTTPException, status
 
 from app.academic.assignments.repository import AssignmentRepository
@@ -23,7 +25,7 @@ class TimetableService:
             )
         return result
 
-    async def check_time(self, start_time: str, end_time: str) -> bool:
+    async def check_time(self, start_time: time, end_time: time) -> bool:
         if start_time >= end_time:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -33,9 +35,7 @@ class TimetableService:
 
     async def check_teacher_conflict(
         self, user_id: int, day: str, start_time: str, exclude_id: int | None
-    ):
-        if exclude_id is None:
-            raise HTTPException(status_code=404, detail="Not found user")
+    ) -> None:
         conflict = await self.repo.teacher_conflict(
             user_id, day, start_time, exclude_id
         )
@@ -47,9 +47,7 @@ class TimetableService:
 
     async def _check_duplicate(
         self, assignment_id: int, day: str, start_time: str, exclude_id: int | None
-    ):
-        if exclude_id is None:
-            raise HTTPException(status_code=404, detail="Not found user")
+    ) -> None:
         existing = await self.repo.exists(assignment_id, day, start_time, exclude_id)
         if existing:
             raise HTTPException(
@@ -70,23 +68,21 @@ class TimetableService:
             start_time=str(data.start_time),
             exclude_id=None,
         )
-
         await self.check_teacher_conflict(
             user_id=assignment["teacher_id"],
             day=data.day.value,
             start_time=str(data.start_time),
             exclude_id=None,
         )
-
         return await self.repo.create(data)
 
-    async def get_all(self) -> list[dict]:  # sourcery skip: avoid-builtin-shadow
-        all = await self.repo.get_all()
-        if not all:
+    async def get_all(self) -> list[dict]:
+        timetables = await self.repo.get_all()
+        if not timetables:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Timetable is empty"
             )
-        return all
+        return timetables
 
     async def get_by_id(self, id: int) -> dict:
         return await self.get_or_404(id)
@@ -129,8 +125,7 @@ class TimetableService:
 
     async def update(self, id: int, data: TimetableUpdate) -> dict:
         current = await self.get_or_404(id)
-        if not current:
-            raise HTTPException(status_code=404, detail="Not found timetable")
+
         start_time = data.start_time or current["start_time"]
         end_time = data.end_time or current["end_time"]
         await self.check_time(start_time, end_time)
@@ -151,12 +146,13 @@ class TimetableService:
                 user_id=current["teacher_id"], day=day, start_time=start, exclude_id=id
             )
 
-        return await self.repo.update(id, data)
+        updated = await self.get_by_id(id)
+        if updated is None:
+            raise Exception("Failed to fetch updated timetable entry")
+        return updated
 
     async def delete(self, id: int) -> dict:
-        timetable = await self.repo.get_by_id(id)
-        if not timetable:
-            raise HTTPException(status_code=404, detail="Not found timetable")
+        await self.get_or_404(id)
         deleted = await self.repo.delete(id)
         if not deleted:
             raise HTTPException(

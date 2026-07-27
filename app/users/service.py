@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 
 from .repository import UsersRepository
-from .schemas import UserCreate, UserResponse, UserUpdate,UserSearchFilters
+from .schemas import UserCreate, UserResponse, UserSearchFilters, UserUpdate
 
 
 class UserService:
@@ -114,10 +114,7 @@ class UserService:
         await self.repo.remove_role(user_id, role_id)
         return {"message": "Role successfully removed"}
 
-    async def search_users(
-        self,
-        filter:UserSearchFilters
-    ) -> list[UserResponse]:
+    async def search_users(self, filter: UserSearchFilters) -> list[UserResponse]:
         return [
             UserResponse(**u)
             for u in await self.repo.search_users(
@@ -134,7 +131,7 @@ class UserService:
         role = await self.repo.get_role_by_name("student")
         if not role:
             raise HTTPException(400, "Student role not found in system")
-            
+
         is_student = await self.repo.get_user_role(user_id, role["id"])
         if not is_student:
             raise HTTPException(400, "This user is not a student")
