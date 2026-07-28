@@ -34,6 +34,7 @@ from app.core.logger import logger
 from app.core.middleware import RequestContextMiddleware
 from app.department.router import router as department_router
 from app.faculty.router import router as faculty_router
+from app.notifications.router import router as notification_router
 from app.profile.router import router as profile_router
 from app.users.router import router as user_router
 
@@ -129,6 +130,9 @@ app.include_router(section_router, prefix=f"{PREFIX}/sections", tags=["Sections"
 app.include_router(program_router, prefix=f"{PREFIX}/programs", tags=["Programs"])
 app.include_router(cohort_router, prefix=f"{PREFIX}/cohorts", tags=["Cohorts"])
 app.include_router(profile_router, prefix=f"{PREFIX}/profile", tags=["Profile"])
+app.include_router(
+    notification_router, prefix=f"{PREFIX}/notification", tags=["Notification"]
+)
 
 
 # ─── Health Check ───────────────────────────────────────────

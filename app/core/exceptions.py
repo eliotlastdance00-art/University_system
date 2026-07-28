@@ -1,19 +1,26 @@
 """
-Centralized exception hierarchy for the University System.
+Core exception hierarchy — base classes only.
 
-All custom exceptions inherit from AppError, which carries:
- - message:     human-readable explanation
- - status_code: HTTP status to return
- - error_code:  machine-readable string for clients
+Domain-specific exceptions live in their own domain folder:
+  app/users/exceptions.py
+  app/auth/exceptions.py
+  app/faculty/exceptions.py
+  app/department/exceptions.py
+  app/academic/grades/exceptions.py
+  app/academic/sections/exceptions.py
+  ... etc.
 
-Modules should raise these instead of raw HTTPException
-so the global handler in main.py can produce consistent
-JSON error responses.
+Every custom exception inherits from AppError, which carries:
+  - message:     human-readable explanation
+  - status_code: HTTP status to return
+  - error_code:  machine-readable string for clients
+
+The global handler in main.py converts AppError → consistent JSON.
 """
 
 
 class AppError(Exception):
-    """Base exception for all application errors."""
+    """Root base for every application-level error."""
 
     status_code: int = 500
     error_code: str = "INTERNAL_ERROR"
@@ -27,6 +34,8 @@ class AppError(Exception):
 
 
 class ValidationError(AppError):
+    """Generic input / business-rule validation failure."""
+
     status_code = 400
     error_code = "VALIDATION_ERROR"
 
@@ -34,17 +43,12 @@ class ValidationError(AppError):
         super().__init__(message)
 
 
-class InvalidGradeValueError(ValidationError):
-    error_code = "INVALID_GRADE_VALUE"
-
-    def __init__(self, message: str = "Invalid grade value"):
-        super().__init__(message)
-
-
-# ─── 401 Unauthorized ──────────────────────────────────────
+# ─── 401 Unauthorized ───────────────────────────────────────
 
 
 class UnauthorizedError(AppError):
+    """Missing or invalid authentication credentials."""
+
     status_code = 401
     error_code = "UNAUTHORIZED"
 
@@ -56,6 +60,8 @@ class UnauthorizedError(AppError):
 
 
 class ForbiddenError(AppError):
+    """Authenticated but not permitted to perform the action."""
+
     status_code = 403
     error_code = "FORBIDDEN"
 
@@ -63,19 +69,12 @@ class ForbiddenError(AppError):
         super().__init__(message)
 
 
-class UnauthorizedGradeAccessError(ForbiddenError):
-    error_code = "UNAUTHORIZED_GRADE_ACCESS"
-
-    def __init__(
-        self, message: str = "You do not have permission to access this grade"
-    ):
-        super().__init__(message)
-
-
 # ─── 404 Not Found ──────────────────────────────────────────
 
 
 class NotFoundError(AppError):
+    """Requested resource does not exist."""
+
     status_code = 404
     error_code = "NOT_FOUND"
 
@@ -83,17 +82,12 @@ class NotFoundError(AppError):
         super().__init__(message)
 
 
-class GradeNotFoundError(NotFoundError):
-    error_code = "GRADE_NOT_FOUND"
-
-    def __init__(self, message: str = "Grade not found"):
-        super().__init__(message)
-
-
 # ─── 409 Conflict ───────────────────────────────────────────
 
 
 class ConflictError(AppError):
+    """Resource already exists or state conflict."""
+
     status_code = 409
     error_code = "CONFLICT"
 
@@ -105,6 +99,8 @@ class ConflictError(AppError):
 
 
 class RateLimitError(AppError):
+    """Client is sending too many requests."""
+
     status_code = 429
     error_code = "RATE_LIMIT_EXCEEDED"
 

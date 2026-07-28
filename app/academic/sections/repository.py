@@ -55,7 +55,7 @@ class SectionRepository:
                 SET cohort_id=%s, number=%s, capacity=%s
                 WHERE id=%s
                 """,
-                (data.cohort_id, data.number, data.capasity,id),
+                (data.cohort_id, data.number, data.capacity, id),
             )
             await self.conn.commit()
             return await self.get_section_by_id(id)
@@ -114,7 +114,7 @@ class SectionRepository:
                                 JOIN roles         r  ON ur.role_id=r.id
                                 WHERE up.section_id=%s AND r.name="student"
                     """,(id,)) 
-            await cur.fetchall()      
+            return await cur.fetchall()      
 
 
     async def get_section_timetable(self,id:int)->list[dict]:
@@ -130,4 +130,4 @@ class SectionRepository:
                                 JOIN roles         r  ON ur.role_id=r.id
                                 WHERE up.section_id=%s AND r.name="student"
                     """,(id,)) 
-            await cur.fetchall()      
+            return await cur.fetchall()      

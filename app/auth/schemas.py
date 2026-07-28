@@ -1,24 +1,24 @@
-from pydantic import BaseModel,EmailStr
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel, EmailStr
+
 
 class LoginRequest(BaseModel):
-    email:EmailStr
-    password:str
+    email: EmailStr
+    password: str
 
 
 class TokenResponse(BaseModel):
-    access_token:str
-    refresh_token:str
-    token_type:str="bearer"
-
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
 
 
 class SaveRefreshToken(BaseModel):
-    user_id:int
-    token:str
-    expires_at:datetime  
-    is_revoked:bool = False
+    user_id: int
+    token: str
+    expires_at: datetime
+    is_revoked: bool = False
 
 
 class Settings(BaseModel):
@@ -30,8 +30,9 @@ class Settings(BaseModel):
 
 
 class SendOtpRequest(BaseModel):
-    email:EmailStr  
+    email: EmailStr
+
+
 class VerifyOtpRequest(BaseModel):
-    email:EmailStr
-    otp: Optional[str] = None    
-    
+    email: EmailStr
+    otp: str | None = None

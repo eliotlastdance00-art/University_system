@@ -1,12 +1,15 @@
 import hmac
 import logging
+
+logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta, timezone
 
-from fastapi import HTTPException, Response, status
+from fastapi import Response
 
 from app.auth.email.service import send_otp_email
 from app.auth.schemas import SaveRefreshToken, SendOtpRequest, VerifyOtpRequest
 from app.core.config import settings
+from app.core.exceptions import AppError
 from app.core.security import (
     create_otp,
     create_otp_token,
@@ -18,6 +21,19 @@ from app.core.security import (
 )
 from app.users.repository import UsersRepository
 
+from .exceptions import (
+    AccountInactiveError,
+    InvalidCredentialsError,
+    InvalidOtpCodeError,
+    InvalidOtpTokenError,
+    InvalidRefreshPayloadError,
+    InvalidRefreshTokenError,
+    InvalidUserIdInTokenError,
+    MissingOtpTokenError,
+    OtpEmailMismatchError,
+    RefreshTokenNotFoundError,
+    TokenRevokedError,
+)
 from .repository import AuthRepository
 from .schemas import LoginRequest, TokenResponse
 
@@ -31,15 +47,10 @@ class AuthService:
         try:
             user = await self.repo.get_user_for_login(data.email)
             if not user or not verify_password(user["password"], data.password):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid email or password",
-                )
+                raise InvalidCredentialsError()
 
             if not user.get("is_active"):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN, detail="Account is inactive"
-                )
+                raise AccountInactiveError()
 
             email_address = user.get("email") or data.email
             otp_req = SendOtpRequest(email=email_address)
@@ -47,14 +58,11 @@ class AuthService:
             await self.send_otp(request=otp_req, response=response)
             return {"message": "OTP code sent successfully. Please verify."}
 
-        except HTTPException:
+        except AppError:
             raise
         except Exception as e:
-            print(f"LOGIN ERROR: {e!s}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Login Error: {e!s}",
-            ) from e
+            logger.error(f"LOGIN ERROR: {e!s}")
+            raise AppError(f"Login Error: {e!s}") from e
 
     async def send_otp(self, request: SendOtpRequest, response: Response):
         try:
@@ -78,16 +86,13 @@ class AuthService:
             )
             return {"message": "OTP sent to email"}
 
-        except HTTPException:
+        except AppError:
             raise
         except Exception as e:
             # Terminalda jikme-jik görmek üçin
-            logging.error(f"Send OTP Error: {e!s}", exc_info=True)
-
-            # WAGTLAÝYNÇA: Ekrana hakyky ýalňyşlygy çykarýarys (Mysal üçin: FileNotFoundError ýa-da SMTP Authentication Error)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to send OTP email. Internal Error: {e!s}",
+            logger.exception("Send OTP Error occurred")
+            raise AppError(
+                f"Failed to send OTP email. Internal Error: {e!s}"
             ) from e
 
     async def verify_otp(
@@ -95,33 +100,24 @@ class AuthService:
     ):
         try:
             if not otp_token:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing OTP token"
-                )
+                raise MissingOtpTokenError()
 
             try:
                 payload = decode_otp_token(otp_token)
             except Exception as e:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="OTP token expired or invalid",
-                ) from e
+                raise InvalidOtpTokenError() from e
 
             if not payload or payload.get("type") != "otp_verification":
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid token verification type",
-                )
+                raise InvalidOtpTokenError("Invalid token verification type")
 
             if payload["email"] != request.email:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Email mismatch"
-                )
+                raise OtpEmailMismatchError()
 
-            if not hmac.compare_digest(payload["otp"].encode(), request.otp.encode()):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid OTP code"
-                )
+            if not hmac.compare_digest(
+                str(payload.get("otp", "")).encode(),
+                str(request.otp or "").encode(),
+            ):
+                raise InvalidOtpCodeError()
 
             response.delete_cookie(
                 key="otp_token", path="/", httponly=True, secure=True, samesite="strict"
@@ -129,9 +125,8 @@ class AuthService:
 
             user = await self.repo.get_user_for_login(request.email)
             if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-                )
+                from app.users.exceptions import UserNotFoundError
+                raise UserNotFoundError()
 
             token_data = {"sub": str(user["id"]), "role": user["role"]}
             access_token = create_token(token_data)
@@ -158,58 +153,38 @@ class AuthService:
                 token_type="bearer",
             )
 
-        except HTTPException:
+        except AppError:
             raise
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="An unexpected error occurred during verification",
-            ) from e
+            raise AppError("An unexpected error occurred during verification") from e
 
     async def refresh_token(self, refresh_token: str) -> TokenResponse:
         try:
             payload = decode_token(refresh_token)
             if not payload:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid refresh token",
-                )
+                raise InvalidRefreshTokenError()
 
             user_id = payload.get("sub")
             if user_id is None:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid refresh token payload",
-                )
+                raise InvalidRefreshPayloadError()
 
             try:
                 user_id_int = int(user_id)
             except (TypeError, ValueError) as e:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid user id in token",
-                ) from e
+                raise InvalidUserIdInTokenError() from e
 
             user = await self.user_repo.get_by_id_users(user_id_int)
             if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="Not found User"
-                )
+                from app.users.exceptions import UserNotFoundError
+                raise UserNotFoundError()
             if not user["is_active"]:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN, detail="User inactive"
-                )
+                raise AccountInactiveError()
 
             token_row = await self.repo.get_refresh_token(refresh_token)
             if not token_row:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Refresh token not found",
-                )
+                raise RefreshTokenNotFoundError()
             if token_row.get("is_revoked"):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is revoked"
-                )
+                raise TokenRevokedError()
 
             new_data = {"sub": str(user["id"]), "role": user["role"]}
             new_access_token = create_token(new_data)
@@ -229,20 +204,16 @@ class AuthService:
                 refresh_token=new_refresh_token,
                 token_type="bearer",
             )
-        except HTTPException:
+        except AppError:
             raise
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="An unexpected error occurred during token refresh",
-            ) from e
+            raise AppError("An unexpected error occurred during token refresh") from e
 
     async def logout(self, refresh_token: str):
         try:
             await self.repo.revoke_token(refresh_token)
             return {"detail": "Logout successful"}
+        except AppError:
+            raise
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="An error occurred during logout",
-            ) from e
+            raise AppError("An error occurred during logout") from e

@@ -1,39 +1,61 @@
-from fastapi import HTTPException, status
+from app.academic.sections.exceptions import SectionNotFoundError
+from app.core.audit_log import AuditAction, AuditLogger
 
+from .exceptions import (
+    RoleAlreadyAssignedError,
+    RoleNotAssignedError,
+    RoleNotFoundError,
+    SectionFullError,
+    StudentRoleRequiredError,
+    UserAlreadyExistsError,
+    UserNotFoundError,
+    WeakPasswordError,
+)
 from .repository import UsersRepository
-from .schemas import UserCreate, UserResponse, UserUpdate
+from .schemas import UserCreate, UserResponse, UserSearchFilters, UserUpdate
+
+# password_hash ýaly meýdanlary audit-e ýazmazlyk üçin
+SENSITIVE_FIELDS = {"password", "password_hash"}
+
+
+def _strip_sensitive(data: dict) -> dict:
+    return {k: v for k, v in data.items() if k not in SENSITIVE_FIELDS}
 
 
 class UserService:
     def __init__(self, conn):
         self.conn = conn
         self.repo = UsersRepository(self.conn)
+        self.audit = AuditLogger(self.conn)
 
     async def _get_or_404(self, id: int) -> dict:
         """Kullanıcı varlığını kontrol eden ortak helper metot."""
         user = await self.repo.get_by_id_users(id)
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Not found user"
-            )
+            raise UserNotFoundError()
         return user
 
-    async def user_create(self, data: UserCreate) -> UserResponse:
+    async def user_create(self, data: UserCreate, actor_id: int | None = None) -> UserResponse:
         existing_user = await self.repo.get_by_email_users(data.email)
         if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="That email already created",
-            )
+            raise UserAlreadyExistsError()
 
         if not data.password or len(data.password) < 8:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password is too short! It must be at least 8 characters long.",
-            )
+            raise WeakPasswordError()
 
         await self.repo.create_user(data.full_name, data.email, data.password)
         created_user = await self.repo.get_by_email_users(data.email)
+
+        # create-de old_value ýok, sebäbi entek ýazgy döremänkä "köne ýagdaý" bolmaýar
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.CREATE,
+            entity_name="user",
+            entity_id=created_user["id"],
+            old_value=None,
+            new_value=_strip_sensitive(created_user),
+        )
+
         return UserResponse(**created_user)
 
     async def get_all(self) -> list[UserResponse]:
@@ -44,10 +66,9 @@ class UserService:
         user = await self._get_or_404(user_id)
         return UserResponse(**user)
 
-    async def update_user(self, id: int, data: UserUpdate) -> dict:
-        current_user = await self._get_or_404(id)
+    async def update_user(self, id: int, data: UserUpdate, actor_id: int | None = None) -> dict:
+        current_user = await self._get_or_404(id)  # <- bu eýýäm "old_value" bolýar, ony gaýtadan sorama
 
-        # Gönderilmeyen alanlar için mevcut veriyi koru
         new_full_name = (
             data.full_name if data.full_name is not None else current_user["full_name"]
         )
@@ -64,96 +85,139 @@ class UserService:
             await self.repo.update_user_without_password(
                 id, new_full_name, new_email, new_is_active
             )
+
+        updated_user = await self.repo.get_by_id_users(id)
+
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.UPDATE,
+            entity_name="user",
+            entity_id=id,
+            old_value=_strip_sensitive(current_user),
+            new_value=_strip_sensitive(updated_user),
+        )
+
         return {"message": "Changed user ✅"}
 
-    async def delete_user(self, id: int) -> dict:
-        await self._get_or_404(id)
+    async def delete_user(self, id: int, actor_id: int | None = None) -> dict:
+        user = await self._get_or_404(id)  # pozulmazdan öňki ýagdaýy sakla
         await self.repo.delete_user(id)
+
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.DELETE,
+            entity_name="user",
+            entity_id=id,
+            old_value=_strip_sensitive(user),
+            new_value=None,  # pozulany üçin täze ýagdaý ýok
+        )
+
         return {"message": "Delete user ✅"}
 
     async def give_role(
         self,
         user_id: int,
         role_id: int,
-        faculty_id: int = None,
-        department_id: int = None,
-        section_id: int = None,
+        faculty_id: int | None = None,
+        department_id: int | None = None,
+        section_id: int | None = None,
+        actor_id: int | None = None,
     ) -> dict:
         await self._get_or_404(user_id)
 
         role = await self.repo.role_by_id(role_id)
         if not role:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Not found ROLE"
-            )
+            raise RoleNotFoundError()
 
         existing_role = await self.repo.get_user_role(user_id, role_id)
         if existing_role:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Role already taken"
-            )
+            raise RoleAlreadyAssignedError()
 
         await self.repo.assign_role(user_id, role_id)
         await self.repo.assign_profile(user_id, faculty_id, department_id, section_id)
+
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.ROLE_ASSIGN,
+            entity_name="user_role",
+            entity_id=user_id,
+            old_value=None,
+            new_value={
+                "role_id": role_id,
+                "faculty_id": faculty_id,
+                "department_id": department_id,
+                "section_id": section_id,
+            },
+        )
+
         return {"message": "Successfully given role"}
 
     async def show_roles(self, user_id: int) -> list:
         await self._get_or_404(user_id)
         return await self.repo.get_user_roles_all(user_id)
 
-    async def delete_role(self, user_id: int, role_id: int) -> dict:
+    async def delete_role(self, user_id: int, role_id: int, actor_id: int | None = None) -> dict:
         await self._get_or_404(user_id)
 
         existing_role = await self.repo.get_user_role(user_id, role_id)
         if not existing_role:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User does not have this role",
-            )
+            raise RoleNotAssignedError()
 
         await self.repo.remove_role(user_id, role_id)
+
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.ROLE_REVOKE,
+            entity_name="user_role",
+            entity_id=user_id,
+            old_value={"role_id": role_id},
+            new_value=None,
+        )
+
         return {"message": "Role successfully removed"}
 
-    async def search_users(
-        self,
-        name: str = None,
-        role: str = None,
-        faculty_id: int = None,
-        department_id: int = None,
-        section_id: int = None,
-    ) -> list[UserResponse]:
+    async def search_users(self, filter: UserSearchFilters) -> list[UserResponse]:
         return [
             UserResponse(**u)
             for u in await self.repo.search_users(
-                name=name,
-                role=role,
-                faculty_id=faculty_id,
-                department_id=department_id,
-                section_id=section_id,
+                name=filter.name,
+                role=filter.role,
+                faculty_id=filter.faculty_id,
+                department_id=filter.department_id,
+                section_id=filter.section_id,
             )
         ]
 
-    async def assign_section(self, user_id: int, section_id: int):
-
+    async def assign_section(self, user_id: int, section_id: int, actor_id: int | None = None):
         user = await self.repo.get_by_id_users(user_id)
         if not user:
-            raise HTTPException(404, "Not found user")
+            raise UserNotFoundError()
 
         role = await self.repo.get_role_by_name("student")
         if not role:
-            raise HTTPException(400, "Student role not found in system")
-            
+            raise RoleNotFoundError("Student role not found in system")
+
         is_student = await self.repo.get_user_role(user_id, role["id"])
         if not is_student:
-            raise HTTPException(400, "This user is not a student")
+            raise StudentRoleRequiredError()
 
         section = await self.repo.get_section_by_id(section_id)
         if not section:
-            raise HTTPException(404, "Not found section")
+            raise SectionNotFoundError()
 
         count = await self.repo.get_section_student_count(section_id)
         if count["total"] >= section["capacity"]:
-            raise HTTPException(400, "Section is full")
+            raise SectionFullError()
 
         await self.repo.update_user_section(user_id, section_id)
+
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.SECTION_ASSIGN,
+            entity_name="user",
+            entity_id=user_id,
+            old_value=None,
+            new_value={"section_id": section_id},
+        )
+
         return {"success": "Student assigned to section successfully"}

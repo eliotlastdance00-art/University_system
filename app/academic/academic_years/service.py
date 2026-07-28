@@ -1,10 +1,11 @@
 from app.academic.academic_years.repository import AcademicYearRepository
-from fastapi import HTTPException
 from app.academic.academic_years.schemas import (
     Academic_yearCreate,
     Academic_yearResponse,
     Academic_yearUpdate,
 )
+
+from .exceptions import AcademicYearNotFoundError, InvalidAcademicYearRangeError
 
 
 class AcademicYearService:
@@ -14,30 +15,21 @@ class AcademicYearService:
 
     async def create(self, data: Academic_yearCreate) -> Academic_yearResponse:
         if data.year_start >= data.year_end:
-            raise HTTPException(
-                status_code=400,
-                detail="year_start must be less than year_end",
-            )
-        if await self.repo.get_by_id(data.id):
-            raise HTTPException(
-                status_code=400,
-                detail="That academic year already created",
-            )
+            raise InvalidAcademicYearRangeError()
+
         result = await self.repo.create(data)
         return Academic_yearResponse(**result)
 
     async def update(self, data: Academic_yearUpdate) -> Academic_yearResponse:
-        if data.year_start >= data.year_end:
-            raise HTTPException(
-                status_code=400,
-                detail="year_start must be less than year_end",
-            )
+        if (
+            data.year_start is not None
+            and data.year_end is not None
+            and data.year_start >= data.year_end
+        ):
+            raise InvalidAcademicYearRangeError()
         result = await self.repo.update(data)
         if not result:
-            raise HTTPException(
-                status_code=404,
-                detail="Not found this academic year id",
-            )
+            raise AcademicYearNotFoundError()
         return Academic_yearResponse(**result)
 
     async def get_all(self) -> list[Academic_yearResponse]:

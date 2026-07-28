@@ -23,7 +23,7 @@ SERVICE_NAME = "university_system"
 class StructuredJsonFormatter(logging.Formatter):
     """Formats each LogRecord as a single JSON line."""
 
-    def format(self, record: logging.Formatter) -> str:
+    def format(self, record: logging.LogRecord) -> str:
         log = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,

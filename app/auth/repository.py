@@ -37,7 +37,7 @@ class AuthRepository:
             )
         await self.conn.commit()
 
-    async def get_refresh_token(self, token: str) -> list[dict]:
+    async def get_refresh_token(self, token: str) -> dict | None:
         sql = """SELECT
                     r.id,
                     r.user_id,
@@ -51,9 +51,9 @@ class AuthRepository:
                     """
         async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(sql, (token,))
-            return await cur.fetchall()
+            return await cur.fetchone()
 
-    async def revoke_token(self, token: str) -> dict:
+    async def revoke_token(self, token: str) -> None:
         sql = """
             UPDATE
             refresh_tokens
@@ -65,7 +65,7 @@ class AuthRepository:
             await cur.execute(sql, (token,))
             await self.conn.commit()
 
-    async def revoke_all_token(self, user_id) -> dict:
+    async def revoke_all_token(self, user_id) -> None:
         sql = """
             UPDATE
             refresh_tokens

@@ -4,9 +4,10 @@ from fastapi.security import APIKeyHeader
 from app.core.security import decode_token
 
 oauth2_scheme = APIKeyHeader(name="Authorization")
-
+from typing import Annotated
 
 # ─── Current User ───────────────────────────────────────────
+
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -19,43 +20,47 @@ async def get_current_user(
 
 # ─── Role Guards ────────────────────────────────────────────
 
-async def admin_required(current_user: dict = Depends(get_current_user)):
+CurrentUser = Annotated[dict, Depends(get_current_user)]
+
+
+async def admin_required(current_user: CurrentUser):
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
 
-async def dean_required(current_user: dict = Depends(get_current_user)):
+async def dean_required(current_user: CurrentUser):
     if current_user.get("role") != "dean":
         raise HTTPException(status_code=403, detail="Dean access required")
     return current_user
 
 
-async def admin_or_dean(current_user: dict = Depends(get_current_user)):
+async def admin_or_dean(current_user: CurrentUser):
     if current_user.get("role") not in ["admin", "dean"]:
         raise HTTPException(status_code=403, detail="Admin or Dean access required")
     return current_user
 
 
-async def teacher_required(current_user: dict = Depends(get_current_user)):
+async def teacher_required(current_user: CurrentUser):
     if current_user.get("role") != "teacher":
         raise HTTPException(status_code=403, detail="Teacher access required")
     return current_user
 
 
-async def admin_or_student(current_user: dict = Depends(get_current_user)):
+async def admin_or_student(current_user: CurrentUser):
     if current_user.get("role") not in ["admin", "student"]:
         raise HTTPException(status_code=403, detail="Admin or Student access required")
     return current_user
 
 
-async def admin_or_teacher(current_user: dict = Depends(get_current_user)):
+async def admin_or_teacher(current_user: CurrentUser):
     if current_user.get("role") not in ["admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Admin or Teacher access required")
     return current_user
 
 
 # ─── Pagination ─────────────────────────────────────────────
+
 
 class PaginationParams:
     """Reusable pagination dependency.
@@ -67,8 +72,7 @@ class PaginationParams:
     """
 
     def __init__(self, page: int = 1, page_size: int = 20):
-        if page < 1:
-            page = 1
+        page = max(page, 1)
         if page_size < 1:
             page_size = 1
         elif page_size > 100:

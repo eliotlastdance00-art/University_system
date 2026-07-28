@@ -1,113 +1,97 @@
-from  app.faculty.repository import FacultyRepository
+from app.core.audit_log import AuditAction, AuditLogger
 from app.department.repository import DepartmentRepository
-from  .schemas import FacultyCreate,FacultyUpdate,FacultyResponse
-from fastapi import HTTPException
+from app.faculty.repository import FacultyRepository
 
-
+from .exceptions import (
+    FacultyAlreadyExistsError,
+    FacultyCreateError,
+    FacultyNotFoundError,
+)
+from .schemas import FacultyCreate, FacultyResponse, FacultyUpdate
 
 
 class FacultyService:
-    def __init__(self,conn):
+    def __init__(self, conn):
+        self.conn = conn
         self.repo = FacultyRepository(conn)
-        self.dp_repo=DepartmentRepository(conn)
-    #     Created faculty
-    async def create_faculty(self,data:FacultyCreate)-> list[dict]:
-        existing=await self.repo.get_faculty_by_code(data.code)
-        if existing:
-            raise HTTPException(
-            status_code=400,
-            detail="Faculty is already existing!"
-        )
-        await self.repo.create_faculty(data.name,data.code)
-        faculty=await self.repo.get_faculty_by_code(data.code)
-        return FacultyResponse(**faculty)
+        self.dp_repo = DepartmentRepository(conn)
+        self.audit = AuditLogger(conn)
 
-        
-    
-
-
-    #    Get all faculty
-    async def get_all_faculty(self)-> list[dict]:
-        faculties=await self.repo.get_all_faculty()
-        return faculties or []
-
-
-    #Get {id} faculty
-    async def get_faculty_id(self,id:int)-> list[dict]:
-        faculty=await self.repo.get_faculty_by_id(id)
+    async def _get_or_404(self, id: int) -> dict:
+        faculty = await self.repo.get_faculty_by_id(id)
         if not faculty:
-            raise HTTPException(
-            status_code=404,
-            detail="Not found this faculty!"
-        )
+            raise FacultyNotFoundError()
         return faculty
 
+    async def create_faculty(
+        self, data: FacultyCreate, actor_id: int | None = None
+    ) -> FacultyResponse:
+        existing = await self.repo.get_faculty_by_code(data.code)
+        if existing:
+            raise FacultyAlreadyExistsError()
 
-    #    Update faculty        
-    async def update_faculty(self,id:int,data:FacultyUpdate)-> list[dict]:
-        faculty=await self.repo.get_faculty_by_id(id)
+        await self.repo.create_faculty(data.name, data.code)
+        faculty = await self.repo.get_faculty_by_code(data.code)
         if not faculty:
-            raise HTTPException(
-            status_code=404,
-            detail="Not found this faculty!"
-            )
-        new_name=data.name or faculty["name"]
-        new_code=data.code or faculty["code"]
-        await self.repo.update_faculty(id,new_name,new_code)
-        return {"message":"Changed Faculty"}
+            raise FacultyCreateError()
 
-
-
-
-
-    #.     Delete faculty
-    async def delete_faculty(self,id):
-        faculty= await self.repo.get_faculty_by_id(id)
-        if  faculty:
-            raise HTTPException(
-            status_code=404,
-            detail="Not found that faculty!!!"
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.CREATE,
+            entity_name="faculty",
+            entity_id=faculty["id"],
+            old_value=None,
+            new_value=faculty,
         )
+
+        return FacultyResponse(**faculty)
+
+    async def get_all_faculty(self) -> list[dict]:
+        faculties = await self.repo.get_all_faculty()
+        return faculties or []
+
+    async def get_faculty_id(self, id: int) -> dict:
+        return await self._get_or_404(id)
+
+    async def update_faculty(
+        self, id: int, data: FacultyUpdate, actor_id: int | None = None
+    ) -> dict:
+        faculty = await self._get_or_404(id)
+        new_name = data.name if data.name is not None else faculty.get("name", "")
+        new_code = data.code if data.code is not None else faculty.get("code", "")
+
+        await self.repo.update_faculty(id, new_name, new_code)
+
+        updated = await self.repo.get_faculty_by_id(id)
+        if updated is None:
+            raise FacultyNotFoundError()
+
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.UPDATE,
+            entity_name="faculty",
+            entity_id=id,
+            old_value=faculty,
+            new_value=updated,
+        )
+
+        return {"message": "Changed Faculty"}
+
+    async def delete_faculty(self, id: int, actor_id: int | None = None):
+        faculty = await self._get_or_404(id)
         await self.repo.delete_faculty(id)
-        return {"message":"Succesfull delleted this faculty."}
-    
 
-    async def get_faculty_department(self,id:int)->list[dict]:
-        faculty= await self.repo.get_faculty_by_id(id)
-        print(faculty)
-        if not faculty:
-            raise HTTPException(
-            status_code=404,
-            detail="Not found that faculty!!!"
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.DELETE,
+            entity_name="faculty",
+            entity_id=id,
+            old_value=faculty,
+            new_value=None,
         )
+
+        return {"message": "Succesfull delleted this faculty."}
+
+    async def get_faculty_department(self, id: int) -> list[dict]:
+        await self._get_or_404(id)
         return await self.dp_repo.get_all_department_faculty(id)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

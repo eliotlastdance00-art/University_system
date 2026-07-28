@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from aiomysql import Connection
 from fastapi import APIRouter, Depends
 
@@ -8,24 +10,24 @@ from .schemas import UpdateProfile
 from .services import ProfileService
 
 router = APIRouter()
+CurrentUser = Annotated[dict, Depends(get_current_user)]
+DbConnection = Annotated[Connection, Depends(get_db)]
 
 
 # router.py
 @router.put("/me")
 async def update_profile(
     data: UpdateProfile,
-    current_user=Depends(get_current_user),
-    conn: Connection = Depends(get_db),
+    current_user: CurrentUser,
+    conn: DbConnection,
 ):
-    user_id = current_user["sub"]
+    
     service = ProfileService(conn)
-    return await service.update_profile(user_id, data)
+    return await service.update_profile_me(data)
 
 
 @router.get("/me")
-async def get_profile(
-    current_user=Depends(get_current_user), conn: Connection = Depends(get_db)
-):
+async def get_profile(current_user: CurrentUser, conn: DbConnection):
     user_id = current_user["sub"]
     service = ProfileService(conn)
     return await service.get_profile_me(user_id)
@@ -34,9 +36,9 @@ async def get_profile(
 @router.put("/me/password")
 async def update_password(
     new_password: str,
-    current_user=Depends(get_current_user),
-    conn: Connection = Depends(get_db),
+    current_user: CurrentUser,
+    conn: DbConnection,
 ):
     user_id = current_user["sub"]
     service = ProfileService(conn)
-    return await service.update_password(user_id, new_password)
+    return await service.update_password_me(user_id, new_password)

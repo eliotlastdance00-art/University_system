@@ -1,4 +1,5 @@
 from aiomysql import DictCursor
+
 from app.core.security import hash_password
 
 
@@ -89,9 +90,9 @@ class UsersRepository:
     async def assign_profile(
         self,
         user_id: int,
-        faculty_id: int = None,
-        department_id: int = None,
-        section_id: int = None,
+        faculty_id: int | None,
+        department_id: int | None,
+        section_id: int | None,
     ):
         if not faculty_id and not department_id and not section_id:
             return
@@ -112,14 +113,13 @@ class UsersRepository:
             await cursor.execute(sql, (user_id, role_id))
         await self.conn.commit()
 
-
     async def search_users(
-            self,
-            name: str = None,
-            role: str = None,
-            faculty_id: int = None,
-            department_id: int = None,
-            section_id: int = None
+        self,
+        name: str | None,
+        role: str | None,
+        faculty_id: int | None,
+        department_id: int | None,
+        section_id: int | None,
     ) -> list[dict]:
         sql = """
         SELECT 
@@ -175,5 +175,3 @@ class UsersRepository:
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (section_id, user_id))
         await self.conn.commit()
-
-

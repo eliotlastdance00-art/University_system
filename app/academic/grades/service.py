@@ -1,8 +1,7 @@
 from app.academic.grades.repository import AuditLogRepository, GradeRepository
 from app.academic.grades.schemas import GradeCreate, GradeUpdate
-from app.core.exceptions import GradeNotFoundError, InvalidGradeValueError
+from app.academic.grades.exceptions import GradeNotFoundError, InvalidGradeValueError
 from app.core.logger import logger
-from app.core.notifications import send_notification
 
 
 class GradeService:
@@ -40,17 +39,12 @@ class GradeService:
                 },
             )
 
-            # Send Notification safely
-            await send_notification(
-                data.student_id,
-                "Grade Posted",
-                f"A new grade was posted for subject {data.subject_id}",
-            )
+
 
             return new_grade
         except Exception as e:
             logger.error(f"Failed to create grade: {e!s}")
-            raise e
+            raise 
 
     async def update_grade(self, grade_id: int, data: GradeUpdate, current_user: dict):
         old_grade = await self.grade_repo.get_by_id(grade_id)
@@ -87,16 +81,11 @@ class GradeService:
                     },
                 )
 
-                await send_notification(
-                    new_grade["student_id"],
-                    "Grade Updated",
-                    f"Your grade for subject {new_grade['subject_id']} was updated",
-                )
 
                 return new_grade
             except Exception as e:
                 logger.error(f"Failed to update grade: {e!s}")
-                raise e
+                raise 
         return old_grade
 
     async def delete_grade(self, grade_id: int, current_user: dict):
@@ -127,7 +116,7 @@ class GradeService:
             )
         except Exception as e:
             logger.error(f"Failed to delete grade: {e!s}")
-            raise e
+            raise 
 
     async def get_grade(self, grade_id: int):
         grade = await self.grade_repo.get_by_id(grade_id)

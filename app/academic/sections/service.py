@@ -1,13 +1,17 @@
+from .exceptions import SectionNotFoundError
 from .repository import SectionRepository
 from .schemas import SectionCreate, UpdateSection
-from fastapi import HTTPException
-
 
 
 class SectionService:
     def __init__(self, conn):
         self.repo = SectionRepository(conn)
 
+    async def _get_or_404(self, id: int) -> dict:
+        section = await self.repo.get_section_by_id(id)
+        if not section:
+            raise SectionNotFoundError()
+        return section
 
     async def create_section(self, data: SectionCreate):
         await self.repo.create_section(data)
@@ -17,49 +21,25 @@ class SectionService:
         return await self.repo.get_all_sections(skip, limit)
 
     async def get_section_by_id(self, id: int):
-        section = await self.repo.get_section_by_id(id)
-        if not section:
-            raise HTTPException(
-                status_code=404,
-                detail="Not found this section id",
-            )
-        return section
+        return await self._get_or_404(id)
 
-    async def update_section(self,id:int, data: UpdateSection):
-        existing = await self.repo.get_section_by_id(id)
-        if not existing:
-            raise HTTPException(
-                status_code=404,
-                detail="Not found this section id",
-            )
+    async def update_section(self, id: int, data: UpdateSection):
+        existing = await self._get_or_404(id)
         new_cohort_id = data.cohort_id or existing["cohort_id"]
         new_number = data.number or existing["number"]
-        new_capacity = data.capasity or existing["capacity"]
-        data=UpdateSection(
-            id=data.id,
+        new_capacity = data.capacity or existing["capacity"]
+        data = UpdateSection(
             cohort_id=new_cohort_id,
             number=new_number,
-            capacity=new_capacity
+            capacity=new_capacity,
         )
-        return await self.repo.update_section(id,data)
-    
+        return await self.repo.update_section(id, data)
 
     async def delete_section(self, id: int):
-        existing = await self.repo.get_section_by_id(id)
-        if not existing:
-            raise HTTPException(
-                status_code=404,
-                detail="Not found this section id",
-            )
+        await self._get_or_404(id)
         await self.repo.delete_section(id)
         return {"message": "Successfully deleted that section"}
-    
 
-    async def get_section_student(self,id:int)->list[dict]:
-        section= await self.repo.get_section_by_id(id)
-        if not section:
-            raise HTTPException(
-                status_code=404,
-                detail="Not found section"
-            )
-        await self.get_section_student(id)
+    async def get_section_student(self, id: int) -> list[dict]:
+        await self._get_or_404(id)
+        return await self.repo.get_section_students(id)

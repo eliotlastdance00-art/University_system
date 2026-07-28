@@ -1,25 +1,27 @@
-from pydantic import BaseModel, Field
 from enum import Enum
-from typing import Optional
 
+from pydantic import BaseModel, Field
 
 # ─── ENUM ───────────────────────────────────────
 
+
 class SemesterEnum(str, Enum):
-    first  = "1"
+    first = "1"
     second = "2"
 
 
 # ─── BASE ───────────────────────────────────────
 
+
 class AssignmentBase(BaseModel):
-    user_id:    int = Field(..., gt=0, description="Mugallymyň ID-si")
+    user_id: int = Field(..., gt=0, description="Mugallymyň ID-si")
     subject_id: int = Field(..., gt=0, description="Dersiň ID-si")
-    section_id:   int = Field(..., gt=0, description="Toparyň ID-si")
-    semester:   SemesterEnum         = Field(..., description="Semester 1 ýa 2")
+    section_id: int = Field(..., gt=0, description="Toparyň ID-si")
+    semester: SemesterEnum = Field(..., description="Semester 1 ýa 2")
 
 
 # ─── CREATE ─────────────────────────────────────
+
 
 class AssignmentCreate(AssignmentBase):
     pass
@@ -27,14 +29,16 @@ class AssignmentCreate(AssignmentBase):
 
 # ─── UPDATE ─────────────────────────────────────
 
+
 class AssignmentUpdate(BaseModel):
-    user_id:    Optional[int]          = Field(None, gt=0)
-    subject_id: Optional[int]          = Field(None, gt=0)
-    section_id:   Optional[int]          = Field(None, gt=0)
-    semester:   Optional[SemesterEnum] = None
+    user_id: int | None = Field(None, gt=0)
+    subject_id: int | None = Field(None, gt=0)
+    section_id: int | None = Field(None, gt=0)
+    semester: SemesterEnum | None = None
 
 
 # ─── RESPONSE ───────────────────────────────────
+
 
 class AssignmentResponse(AssignmentBase):
     id: int
@@ -45,21 +49,22 @@ class AssignmentResponse(AssignmentBase):
 
 # ─── DETAIL RESPONSE (JOIN bilen) ───────────────
 
+
 class AssignmentDetailResponse(BaseModel):
-    id:           int
-    semester:     SemesterEnum
+    id: int
+    semester: SemesterEnum
 
     # Mugallym
-    teacher_id:   int
+    teacher_id: int
     teacher_name: str
 
     # Ders
-    subject_id:   int
+    subject_id: int
     subject_name: str
 
     # Topar
-    section_id:     int
-    group_name:   str
+    section_id: int
+    group_name: str
 
     class Config:
         from_attributes = True
@@ -67,11 +72,12 @@ class AssignmentDetailResponse(BaseModel):
 
 # ─── MUGALLYMYŇ TERTIBI ──────────────────────────
 
+
 class TeacherScheduleResponse(BaseModel):
     assignment_id: int
-    subject_name:  str
-    group_name:    str
-    semester:      SemesterEnum
+    subject_name: str
+    group_name: str
+    semester: SemesterEnum
     timetable: list[dict] = []
     # [{"day": "monday", "start_time": "09:00", "room": "301"}]
 
