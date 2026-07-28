@@ -1,7 +1,7 @@
-from fastapi import HTTPException
-
 from app.profile.repository import ProfileRepository
 from app.profile.schemas import UpdateProfile
+
+from .exceptions import EmailAlreadyInUseError, ProfileNotFoundError
 
 
 class ProfileService:
@@ -11,16 +11,16 @@ class ProfileService:
     async def get_profile_me(self, user_id):
         result = await self.repo.get_profile_me(user_id)
         if not result:
-            raise HTTPException(status_code=404, detail="Profile not found")
+            raise ProfileNotFoundError()
         return {k: v for k, v in result.items() if v is not None}
 
     async def update_profile_me(self, data: UpdateProfile):
         email_exists = await self.repo.get_profile_me(data.id)
         if email_exists and email_exists["id"] != data.id:
-            raise HTTPException(status_code=400, detail="Email already in use")
+            raise EmailAlreadyInUseError()
         result = await self.repo.get_profile_me(data.id)
         if not result:
-            raise HTTPException(status_code=404, detail="Profile not found")
+            raise ProfileNotFoundError()
         new_full_name = data.name or result["full_name"]
         new_email = data.email or result["email"]
         new_faculty_id = data.faculty_id or result["faculty_id"]

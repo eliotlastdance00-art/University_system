@@ -1,5 +1,15 @@
-from fastapi import HTTPException, status
+from app.academic.sections.exceptions import SectionNotFoundError
 
+from .exceptions import (
+    RoleAlreadyAssignedError,
+    RoleNotAssignedError,
+    RoleNotFoundError,
+    SectionFullError,
+    StudentRoleRequiredError,
+    UserAlreadyExistsError,
+    UserNotFoundError,
+    WeakPasswordError,
+)
 from .repository import UsersRepository
 from .schemas import UserCreate, UserResponse, UserSearchFilters, UserUpdate
 
@@ -13,24 +23,16 @@ class UserService:
         """Kullanıcı varlığını kontrol eden ortak helper metot."""
         user = await self.repo.get_by_id_users(id)
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Not found user"
-            )
+            raise UserNotFoundError()
         return user
 
     async def user_create(self, data: UserCreate) -> UserResponse:
         existing_user = await self.repo.get_by_email_users(data.email)
         if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="That email already created",
-            )
+            raise UserAlreadyExistsError()
 
         if not data.password or len(data.password) < 8:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password is too short! It must be at least 8 characters long.",
-            )
+            raise WeakPasswordError()
 
         await self.repo.create_user(data.full_name, data.email, data.password)
         created_user = await self.repo.get_by_email_users(data.email)
@@ -83,15 +85,11 @@ class UserService:
 
         role = await self.repo.role_by_id(role_id)
         if not role:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Not found ROLE"
-            )
+            raise RoleNotFoundError()
 
         existing_role = await self.repo.get_user_role(user_id, role_id)
         if existing_role:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Role already taken"
-            )
+            raise RoleAlreadyAssignedError()
 
         await self.repo.assign_role(user_id, role_id)
         await self.repo.assign_profile(user_id, faculty_id, department_id, section_id)
@@ -106,10 +104,7 @@ class UserService:
 
         existing_role = await self.repo.get_user_role(user_id, role_id)
         if not existing_role:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User does not have this role",
-            )
+            raise RoleNotAssignedError()
 
         await self.repo.remove_role(user_id, role_id)
         return {"message": "Role successfully removed"}
@@ -127,26 +122,25 @@ class UserService:
         ]
 
     async def assign_section(self, user_id: int, section_id: int):
-
         user = await self.repo.get_by_id_users(user_id)
         if not user:
-            raise HTTPException(404, "Not found user")
+            raise UserNotFoundError()
 
         role = await self.repo.get_role_by_name("student")
         if not role:
-            raise HTTPException(400, "Student role not found in system")
+            raise RoleNotFoundError("Student role not found in system")
 
         is_student = await self.repo.get_user_role(user_id, role["id"])
         if not is_student:
-            raise HTTPException(400, "This user is not a student")
+            raise StudentRoleRequiredError()
 
         section = await self.repo.get_section_by_id(section_id)
         if not section:
-            raise HTTPException(404, "Not found section")
+            raise SectionNotFoundError()
 
         count = await self.repo.get_section_student_count(section_id)
         if count["total"] >= section["capacity"]:
-            raise HTTPException(400, "Section is full")
+            raise SectionFullError()
 
         await self.repo.update_user_section(user_id, section_id)
         return {"success": "Student assigned to section successfully"}

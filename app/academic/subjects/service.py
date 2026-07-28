@@ -1,9 +1,10 @@
-from fastapi import HTTPException
-
+from app.department.exceptions import DepartmentNotFoundError
 from app.department.repository import DepartmentRepository
+from app.faculty.exceptions import FacultyNotFoundError
 from app.faculty.repository import FacultyRepository
 
 from . import repository
+from .exceptions import SubjectAlreadyExistsError, SubjectNotFoundError
 from .schemas import SubjectCreate, SubjectResponse, SubjectUpdate
 
 # todo Class etmeli icini
@@ -15,10 +16,10 @@ async def create_subject(conn, data: SubjectCreate) -> SubjectResponse:
     dept_repo = DepartmentRepository(conn)
     department = await dept_repo.get_department_by_id(data.department_id)
     if not department:
-        raise HTTPException(status_code=404, detail="Not found department")
+        raise DepartmentNotFoundError()
     name = await repository.get_name_subjects(conn, data.name, data.department_id)
     if name:
-        raise HTTPException(status_code=400, detail="This subject name has already")
+        raise SubjectAlreadyExistsError()
     await repository.create_subject(conn, data.name, data.credits, data.department_id)
     subject = await repository.get_name_subjects(conn, data.name, data.department_id)
     return SubjectResponse(**subject)
@@ -28,7 +29,7 @@ async def create_subject(conn, data: SubjectCreate) -> SubjectResponse:
 async def update_subject(conn, data: SubjectUpdate, id: int):
     subject = await repository.get_id_subjects(conn, id)
     if not subject:
-        raise HTTPException(status_code=404, detail="Not found subject")
+        raise SubjectNotFoundError()
     new_name = data.name or subject["name"]
     new_creadits = data.credits or subject["credits"]
     new_department = data.department_id or subject["department_id"]
@@ -47,7 +48,7 @@ async def get_subject_faculty_all(conn, faculty_id: int) -> list[SubjectResponse
     fac_repo = FacultyRepository(conn)
     faculty = await fac_repo.get_faculty_by_id(faculty_id)
     if not faculty:
-        raise HTTPException(status_code=404, detail="Not found faculty")
+        raise FacultyNotFoundError()
     subject = await repository.get_all_subjects_FACULTY(conn, faculty_id)
     return [SubjectResponse(**s) for s in subject]
 
@@ -57,7 +58,7 @@ async def get_subject_department_all(conn, department_id: int):
     dept_repo = DepartmentRepository(conn)
     department = await dept_repo.get_department_by_id(department_id)
     if not department:
-        raise HTTPException(status_code=404, detail="Not found department")
+        raise DepartmentNotFoundError()
     subject = await repository.get_all_subjects_department(conn, department_id)
     return [SubjectResponse(**s) for s in subject]
 
@@ -66,5 +67,5 @@ async def get_subject_department_all(conn, department_id: int):
 async def get_subject_id(conn, id: int):
     subject = await repository.get_id_subjects(conn, id)
     if not subject:
-        raise HTTPException(status_code=404, detail="Not found subject")
+        raise SubjectNotFoundError()
     return subject

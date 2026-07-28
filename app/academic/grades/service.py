@@ -1,6 +1,6 @@
 from app.academic.grades.repository import AuditLogRepository, GradeRepository
 from app.academic.grades.schemas import GradeCreate, GradeUpdate
-from app.core.exceptions import GradeNotFoundError, InvalidGradeValueError
+from app.academic.grades.exceptions import GradeNotFoundError, InvalidGradeValueError
 from app.core.logger import logger
 
 

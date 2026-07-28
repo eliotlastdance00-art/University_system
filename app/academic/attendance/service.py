@@ -1,7 +1,11 @@
-from fastapi import HTTPException, status
-
 from app.academic.attendance.repository import AttendanceRepository
 from app.academic.attendance.schemas import AttendanceBulkCreate, AttendanceUpdate
+
+from .exceptions import (
+    AttendanceNotFoundError,
+    AttendanceRecordsNotFoundError,
+    NotLessonOwnerError,
+)
 
 
 class AttendanceService:
@@ -14,22 +18,17 @@ class AttendanceService:
     async def _check_lesson_owner(self, lesson_id: int, user_id: int):
         is_owner = await self.repo.is_lesson_owner(lesson_id, user_id)
         if not is_owner:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not the owner of this lesson.",
-            )
+            raise NotLessonOwnerError()
 
     # ─── GET STUDENTS (Lesson başlanda) ──────────────────────
 
     async def get_students(self, lesson_id: int, current_user: dict) -> list[dict]:
-
         await self._check_lesson_owner(lesson_id, current_user["user_id"])
 
         result = await self.repo.get_students_by_lesson(lesson_id)
         if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No students found for this lesson.",
+            raise AttendanceRecordsNotFoundError(
+                "No students found for this lesson."
             )
         return result
 
@@ -38,7 +37,6 @@ class AttendanceService:
     async def bulk_create(
         self, lesson_id: int, data: AttendanceBulkCreate, current_user: dict
     ) -> list[dict]:
-
         await self._check_lesson_owner(lesson_id, current_user["user_id"])
 
         records = [
@@ -52,9 +50,8 @@ class AttendanceService:
     async def get_by_lesson(self, lesson_id: int) -> list[dict]:
         result = await self.repo.get_by_lesson(lesson_id)
         if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No attendance records found for this lesson.",
+            raise AttendanceRecordsNotFoundError(
+                "No attendance records found for this lesson."
             )
         return result
 
@@ -63,9 +60,8 @@ class AttendanceService:
     async def get_lesson_stats(self, lesson_id: int) -> dict:
         records = await self.repo.get_by_lesson(lesson_id)
         if not records:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No attendance records found for this lesson.",
+            raise AttendanceRecordsNotFoundError(
+                "No attendance records found for this lesson."
             )
         return await self.repo.get_lesson_stats(lesson_id)
 
@@ -74,9 +70,8 @@ class AttendanceService:
     async def get_by_student(self, student_id: int) -> list[dict]:
         result = await self.repo.get_by_student(student_id)
         if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No attendance records found for this student.",
+            raise AttendanceRecordsNotFoundError(
+                "No attendance records found for this student."
             )
         return result
 
@@ -90,9 +85,8 @@ class AttendanceService:
     async def get_group_stats(self, section_id: int) -> list[dict]:
         result = await self.repo.get_group_stats(section_id)
         if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No attendance records found for this section.",
+            raise AttendanceRecordsNotFoundError(
+                "No attendance records found for this section."
             )
         return result
 
@@ -101,8 +95,7 @@ class AttendanceService:
     async def update(self, id: int, data: AttendanceUpdate, current_user: dict) -> dict:
         result = await self.repo.update(id, data.status.value)
         if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Attendance record with id {id} not found.",
+            raise AttendanceNotFoundError(
+                f"Attendance record with id {id} not found."
             )
         return result
