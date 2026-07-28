@@ -83,19 +83,19 @@ class DepartmentService:
         return existing
 
     async def get_department_programs(self, department_id: int) -> list[dict]:
-        existing = await self.repo.get_department_by_id(id)
+        existing = await self.repo.get_department_by_id(department_id)
         if not existing:
-            raise HTTPException(status_code=404, deatil="Not found department")
-        await self.prog_repo.get_department_programs(department_id)
+            raise HTTPException(status_code=404, detail="Not found department")
+        return await self.prog_repo.get_department_programs(department_id)
 
     async def get_department_teachers(self, department_id: int) -> list[dict]:
         existing = await self.repo.get_department_by_id(department_id)
         if not existing:
-            raise HTTPException(status_code=404, deatil="Not found department")
-        await self.repo.get_department_teachers(department_id)
+            raise HTTPException(status_code=404, detail="Not found department")
+        return await self.repo.get_department_teachers(department_id)
 
     async def get_department_students(self, department_id: int) -> list[dict]:
         existing = await self.repo.get_department_by_id(department_id)
         if not existing:
-            raise HTTPException(status_code=404, deatil="Not found department")
-        await self.repo.get_department_students(department_id)
+            raise HTTPException(status_code=404, detail="Not found department")
+        return await self.repo.get_department_students(department_id)

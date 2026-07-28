@@ -1,10 +1,11 @@
 import os
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import aiosmtplib
-import ssl
-from app.core.config import settings
 
+import aiosmtplib
+
+from app.core.config import settings
 
 
 def _build_message(to_email: str, otp: str) -> MIMEMultipart:
@@ -52,4 +53,3 @@ async def send_otp_email(to_email: str, otp: str) -> None:
         start_tls=True,
         tls_context=context,
     )
-

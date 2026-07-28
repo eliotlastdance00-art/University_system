@@ -1,8 +1,9 @@
-from pydantic import BaseModel
 from enum import Enum
 
+from pydantic import BaseModel
 
 # ─── ENUM ───────────────────────────────────────────────────
+
 
 class AttendanceStatusEnum(str, Enum):
     present = "present"
@@ -11,6 +12,7 @@ class AttendanceStatusEnum(str, Enum):
 
 # ─── SINGLE RECORD ──────────────────────────────────────────
 
+
 class AttendanceRecord(BaseModel):
     student_id: int
     status: AttendanceStatusEnum
@@ -18,17 +20,20 @@ class AttendanceRecord(BaseModel):
 
 # ─── BULK CREATE ────────────────────────────────────────────
 
+
 class AttendanceBulkCreate(BaseModel):
     records: list[AttendanceRecord]
 
 
 # ─── UPDATE ─────────────────────────────────────────────────
 
+
 class AttendanceUpdate(BaseModel):
     status: AttendanceStatusEnum
 
 
 # ─── RESPONSE ───────────────────────────────────────────────
+
 
 class AttendanceResponse(BaseModel):
     id: int
@@ -42,6 +47,7 @@ class AttendanceResponse(BaseModel):
 
 
 # ─── STATS ──────────────────────────────────────────────────
+
 
 class AttendanceStatsResponse(BaseModel):
     total: int | None

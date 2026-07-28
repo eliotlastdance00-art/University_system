@@ -148,7 +148,10 @@ class TimetableService:
 
         updated = await self.get_by_id(id)
         if updated is None:
-            raise Exception("Failed to fetch updated timetable entry")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to fetch updated timetable entry"
+            )
         return updated
 
     async def delete(self, id: int) -> dict:

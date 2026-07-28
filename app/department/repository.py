@@ -114,7 +114,7 @@ class DepartmentRepository:
                             """,
                 (department_id,),
             )
-            await cur.fetchall()
+            return await cur.fetchall()
 
     async def get_department_students(self, department_id: int) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
@@ -132,4 +132,4 @@ class DepartmentRepository:
                             """,
                 (department_id,),
             )
-            await cur.fetchall()
+            return await cur.fetchall()

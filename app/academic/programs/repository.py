@@ -8,7 +8,7 @@ class ProgramRepository:
         self.conn = conn
 
     async def create(self, data: ProgramCreate):
-        async with self.conn(DictCursor) as cur:
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
                             INSERT 
@@ -21,8 +21,8 @@ class ProgramRepository:
             )
         await self.conn.commit()
 
-    async def update(self,id:int, data: ProgramUpdate):
-        async with self.conn(DictCursor) as cur:
+    async def update(self, id: int, data: ProgramUpdate):
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
                                 UPDATE
@@ -36,37 +36,37 @@ class ProgramRepository:
             await self.conn.commit()
 
     async def get_all_programm(self) -> list[dict]:
-        async with self.conn(DictCursor) as cur:
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute("""
                                 SELECT * FROM programs
                             """)
-            await cur.fetchall()
+            return await cur.fetchall()
 
-    async def get_by_id_programm(self, id: int) -> list[dict]:
-        async with self.conn(DictCursor) as cur:
+    async def get_by_id_programm(self, id: int) -> dict | None:
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
                                 SELECT * FROM programs WHERE id=%s
                             """,
                 (id,),
             )
-            await cur.fetchone()
-    async def get_by_name_programm(self, name: str) -> list[dict]:
-        async with self.conn(DictCursor) as cur:
+            return await cur.fetchone()
+    async def get_by_name_programm(self, name: str) -> dict | None:
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
                                 SELECT * FROM programs WHERE name=%s
                             """,
                 (name,),
             )
-            await cur.fetchone()        
+            return await cur.fetchone()        
 
     async def delete(self, id: int):
-        async with self.conn(DictCursor) as cur:
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute("DELETE FROM programs WHERE id=%s", (id,))
         await self.conn.commit()
 
-    async def get_department_programs(self,department_id:int)->list[dict]:
+    async def get_department_programs(self, department_id: int) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
-            await cur.execute("SELECT * FROM programs WHERE department_id=%s",(department_id,))  
-            await cur.fetchall()  
+            await cur.execute("SELECT * FROM programs WHERE department_id=%s", (department_id,))  
+            return await cur.fetchall()  

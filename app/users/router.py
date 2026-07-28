@@ -50,7 +50,7 @@ async def get_all_users(
 async def search_users(
     current_user: CurrentUser,
     conn: DbConnection,
-    filters: UserSearchFilters = Depends(),
+    filters: UserSearchFilters = Depends(),  # Ruff (B008)
 ) -> list[UserResponse]:
     service = UserService(conn)
     return await service.search_users(filters)

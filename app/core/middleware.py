@@ -58,10 +58,9 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
         except Exception:
             elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-            req_logger.error(
+            req_logger.exception(
                 "unhandled_exception",
                 extra={"context": {"elapsed_ms": elapsed_ms}},
-                exc_info=True,
             )
             return JSONResponse(
                 status_code=500,

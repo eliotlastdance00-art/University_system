@@ -90,9 +90,9 @@ class UsersRepository:
     async def assign_profile(
         self,
         user_id: int,
-        faculty_id: int,
-        department_id: int,
-        section_id: int,
+        faculty_id: int | None,
+        department_id: int | None,
+        section_id: int | None,
     ):
         if not faculty_id and not department_id and not section_id:
             return
@@ -115,11 +115,11 @@ class UsersRepository:
 
     async def search_users(
         self,
-        name: str,
-        role: str,
-        faculty_id: int,
-        department_id: int,
-        section_id: int,
+        name: str | None,
+        role: str | None,
+        faculty_id: int | None,
+        department_id: int | None,
+        section_id: int | None,
     ) -> list[dict]:
         sql = """
         SELECT 

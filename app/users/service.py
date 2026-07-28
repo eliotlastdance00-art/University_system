@@ -75,9 +75,9 @@ class UserService:
         self,
         user_id: int,
         role_id: int,
-        faculty_id: int = None,
-        department_id: int = None,
-        section_id: int = None,
+        faculty_id: int | None = None,
+        department_id: int | None = None,
+        section_id: int | None = None,
     ) -> dict:
         await self._get_or_404(user_id)
 
@@ -118,7 +118,11 @@ class UserService:
         return [
             UserResponse(**u)
             for u in await self.repo.search_users(
-                filter,
+                name=filter.name,
+                role=filter.role,
+                faculty_id=filter.faculty_id,
+                department_id=filter.department_id,
+                section_id=filter.section_id,
             )
         ]
 

@@ -12,12 +12,14 @@ class FacultyService:
         self.dp_repo = DepartmentRepository(conn)
 
     #     Created faculty
-    async def create_faculty(self, data: FacultyCreate) -> list[dict]:
+    async def create_faculty(self, data: FacultyCreate) -> FacultyResponse:
         existing = await self.repo.get_faculty_by_code(data.code)
         if existing:
             raise HTTPException(status_code=400, detail="Faculty is already existing!")
         await self.repo.create_faculty(data.name, data.code)
         faculty = await self.repo.get_faculty_by_code(data.code)
+        if not faculty:
+            raise HTTPException(status_code=400, detail="Failed to create faculty")
         return FacultyResponse(**faculty)
 
     #    Get all faculty
@@ -37,8 +39,8 @@ class FacultyService:
         faculty = await self.repo.get_faculty_by_id(id)
         if not faculty:
             raise HTTPException(status_code=404, detail="Not found this faculty!")
-        new_name = data.name
-        new_code = data.code 
+        new_name = data.name if data.name is not None else faculty.get("name", "")
+        new_code = data.code if data.code is not None else faculty.get("code", "")
         await self.repo.update_faculty(id, new_name, new_code)
         return {"message": "Changed Faculty"}
 

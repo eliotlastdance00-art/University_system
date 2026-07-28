@@ -32,16 +32,16 @@ class ProgramService:
         data = ProgramUpdate(
             id=id, name=new_name, code=neew_code, department_id=new_department_id
         )
-        await self.repo.update(data)
+        await self.repo.update(id, data)
 
     async def get_all_program(self) -> list[dict]:
         return await self.repo.get_all_programm()
 
-    async def get_by_id_program(self, id: int) -> list[dict]:
+    async def get_by_id_program(self, id: int) -> dict:
         result = await self.repo.get_by_id_programm(id)
         if not result:
             raise HTTPException(status_code=404, detail="Not found program")
-        return await result
+        return result
     
 
 
@@ -56,5 +56,5 @@ class ProgramService:
                 status_code=404,
                 detail="Not found program"
             )
-        await self.ch_repo.get_by_program_id(id)   
+        return await self.ch_repo.get_by_program_id(id)   
 

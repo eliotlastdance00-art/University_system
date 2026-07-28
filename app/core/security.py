@@ -25,7 +25,7 @@ def verify_password(hashed_password: str, plain_password: str) -> bool:
     except VerifyMismatchError:
         # Eger parol gabat gelmese
         return False
-    except Exception:
+    except Exception:  # noqa: BLE001
         # Başga bir ýalňyşlyk ýüze çyksa (meselem, format bozuk bolsa)
         return False
 

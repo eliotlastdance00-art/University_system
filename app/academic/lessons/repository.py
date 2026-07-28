@@ -1,5 +1,5 @@
-
 from datetime import date
+
 from aiomysql import DictCursor
 
 
@@ -15,21 +15,27 @@ class LessonRepository:
         date: date,
     ) -> dict:
         async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
+            await cur.execute(
+                """
                     INSERT INTO lessons
                         (timetable_id, date, status)
                     VALUES
                         (%s, %s, 'completed')
-                """, (timetable_id, date))
-                await self.conn.commit()
-                return await self.get_by_id(cur.lastrowid)
-
+                """,
+                (timetable_id, date),
+            )
+            await self.conn.commit()
+            result = await self.get_by_id(cur.lastrowid)
+            if result is None:
+                raise RuntimeError("Failed to retrieve created lesson")
+            return result
 
     # ─── GET BY ID ───────────────────────────────────────────
 
     async def get_by_id(self, id: int) -> dict | None:
         async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
+            await cur.execute(
+                """
                     SELECT
                         l.id,
                         l.timetable_id,
@@ -48,15 +54,16 @@ class LessonRepository:
                     JOIN sections sec ON sec.id = sa.section_id
                     JOIN users u ON u.id = sa.user_id
                     WHERE l.id = %s
-                """, (id,))
-                return await cur.fetchone()
-
+                """,
+                (id,),
+            )
+            return await cur.fetchone()
 
     # ─── GET ALL (Admin) ─────────────────────────────────────
 
     async def get_all(self) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
+            await cur.execute("""
                     SELECT
                         l.id,
                         l.timetable_id,
@@ -76,14 +83,14 @@ class LessonRepository:
                     JOIN users u ON u.id = sa.user_id
                     ORDER BY l.date DESC
                 """)
-                return await cur.fetchall()
-
+            return await cur.fetchall()
 
     # ─── GET BY DATE (Admin) ─────────────────────────────────
 
     async def get_by_date(self, date: date) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
+            await cur.execute(
+                """
                     SELECT
                         l.id,
                         l.timetable_id,
@@ -103,18 +110,17 @@ class LessonRepository:
                     JOIN users u ON u.id = sa.user_id
                     WHERE l.date = %s
                     ORDER BY t.start_time
-                """, (date,))
-                return await cur.fetchall()
-
+                """,
+                (date,),
+            )
+            return await cur.fetchall()
 
     # ─── GET BY TIMETABLE ────────────────────────────────────
 
-    async def get_by_timetable(
-        self,
-        timetable_id: int
-    ) -> list[dict]:
+    async def get_by_timetable(self, timetable_id: int) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
+            await cur.execute(
+                """
                     SELECT
                         l.id,
                         l.timetable_id,
@@ -134,18 +140,17 @@ class LessonRepository:
                     JOIN users u ON u.id = sa.user_id
                     WHERE l.timetable_id = %s
                     ORDER BY l.date DESC
-                """, (timetable_id,))
-                return await cur.fetchall()
-
+                """,
+                (timetable_id,),
+            )
+            return await cur.fetchall()
 
     # ─── GET MY HISTORY (Teacher) ────────────────────────────
 
-    async def get_my_history(
-        self,
-        user_id: int
-    ) -> list[dict]:
+    async def get_my_history(self, user_id: int) -> list[dict]:
         async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
+            await cur.execute(
+                """
                     SELECT
                         l.id,
                         l.timetable_id,
@@ -165,18 +170,17 @@ class LessonRepository:
                     JOIN users u ON u.id = sa.user_id
                     WHERE sa.user_id = %s
                     ORDER BY l.date DESC
-                """, (user_id,))
-                return await cur.fetchall()
-
+                """,
+                (user_id,),
+            )
+            return await cur.fetchall()
 
     # ─── GET MY STATS (Teacher) ──────────────────────────────
 
-    async def get_my_stats(
-        self,
-        user_id: int
-    ) -> dict:
+    async def get_my_stats(self, user_id: int) -> dict:
         async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
+            await cur.execute(
+                """
                     SELECT
                         COUNT(*) AS total,
                         SUM(l.status = 'completed') AS completed,
@@ -187,53 +191,47 @@ class LessonRepository:
                     JOIN subject_assignments sa
                         ON sa.id = t.assignment_id
                     WHERE sa.user_id = %s
-                """, (user_id,))
-                return await cur.fetchone()
-
+                """,
+                (user_id,),
+            )
+            return await cur.fetchone()
 
     # ─── CANCEL ──────────────────────────────────────────────
 
-    async def cancel(
-        self,
-        id: int,
-        note: str | None
-    ) -> dict | None:
+    async def cancel(self, id: int, note: str | None) -> dict | None:
         async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
+            await cur.execute(
+                """
                     UPDATE lessons
                     SET status = 'cancelled',
                         note = %s
                     WHERE id = %s
-                """, (note, id))
-                await self.conn.commit()
-                return await self.get_by_id(id)
-
+                """,
+                (note, id),
+            )
+            await self.conn.commit()
+            return await self.get_by_id(id)
 
     # ─── DUPLICATE BARLAG ────────────────────────────────────
 
-    async def exists(
-        self,
-        timetable_id: int,
-        date: date
-    ) -> bool:
+    async def exists(self, timetable_id: int, date: date) -> bool:
         async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
+            await cur.execute(
+                """
                     SELECT id FROM lessons
                     WHERE timetable_id = %s
                     AND date = %s
-                """, (timetable_id, date))
-                return await cur.fetchone() is not None
-
+                """,
+                (timetable_id, date),
+            )
+            return await cur.fetchone() is not None
 
     # ─── MUGALLYMYŇMY BARLAG ─────────────────────────────────
 
-    async def is_owner(
-        self,
-        lesson_id: int,
-        user_id: int
-    ) -> bool:
+    async def is_owner(self, lesson_id: int, user_id: int) -> bool:
         async with self.conn.cursor(DictCursor) as cur:
-                await cur.execute("""
+            await cur.execute(
+                """
                     SELECT l.id
                     FROM lessons l
                     JOIN timetable t
@@ -242,5 +240,7 @@ class LessonRepository:
                         ON sa.id = t.assignment_id
                     WHERE l.id = %s
                     AND sa.user_id = %s
-                """, (lesson_id, user_id))
-                return await cur.fetchone() is not None
+                """,
+                (lesson_id, user_id),
+            )
+            return await cur.fetchone() is not None

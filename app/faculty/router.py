@@ -19,7 +19,7 @@ DbConnection = Annotated[Connection, Depends(get_db)]
 # router.py
 @router.post(
     "/",
-    response_model=list[FacultyResponse],
+    response_model=FacultyResponse,
     summary="Faculty create",
     description="Admin or dean required",
 )
@@ -27,7 +27,7 @@ async def create_faculty(
     data: FacultyCreate,
     current_user: CurrentUser,
     conn: DbConnection,
-) -> list[dict]:
+) -> FacultyResponse:
     service = FacultyService(conn)
     return await service.create_faculty(data)
 

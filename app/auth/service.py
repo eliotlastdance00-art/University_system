@@ -1,5 +1,7 @@
 import hmac
 import logging
+
+logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, Response, status
@@ -82,7 +84,7 @@ class AuthService:
             raise
         except Exception as e:
             # Terminalda jikme-jik görmek üçin
-            logging.error(f"Send OTP Error: {e!s}", exc_info=True)
+            logger.exception("Send OTP Error occurred")
 
             # WAGTLAÝYNÇA: Ekrana hakyky ýalňyşlygy çykarýarys (Mysal üçin: FileNotFoundError ýa-da SMTP Authentication Error)
             raise HTTPException(
@@ -118,7 +120,7 @@ class AuthService:
                     status_code=status.HTTP_401_UNAUTHORIZED, detail="Email mismatch"
                 )
 
-            if not hmac.compare_digest(payload["otp"].encode(), request.otp.encode()):
+            if not hmac.compare_digest(str(payload.get("otp", "")).encode(), str(request.otp or "").encode()):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid OTP code"
                 )
