@@ -30,6 +30,7 @@ DbConnection = Annotated[Connection, Depends(get_db)]
 )
 async def create_user(data: UserCreate, conn: DbConnection) -> UserResponse:
     service = UserService(conn)
+    # current_user ýok - açyk registrasiýa endpoint, actor_id=None bolup galýar
     return await service.user_create(data)
 
 
@@ -84,7 +85,7 @@ async def update_user(
     conn: DbConnection,
 ) -> dict:
     service = UserService(conn)
-    return await service.update_user(id, data)
+    return await service.update_user(id, data, actor_id=current_user.get("sub"))
 
 
 @router.delete(
@@ -99,7 +100,7 @@ async def delete_user(
     conn: DbConnection,
 ) -> dict:
     service = UserService(conn)
-    return await service.delete_user(id)
+    return await service.delete_user(id, actor_id=current_user.get("sub"))
 
 
 @router.post(
@@ -121,6 +122,7 @@ async def post_role(
         faculty_id=data.faculty_id,
         department_id=data.department_id,
         section_id=data.section_id,
+        actor_id=current_user.get("sub"),
     )
 
 
@@ -152,7 +154,7 @@ async def delete_role(
     conn: DbConnection,
 ) -> dict:
     service = UserService(conn)
-    return await service.delete_role(user_id, role_id)
+    return await service.delete_role(user_id, role_id, actor_id=current_user.get("sub"))
 
 
 @router.post("/{user_id}/assign-section")
@@ -163,4 +165,6 @@ async def assign_section(
     conn: DbConnection,
 ):
     service = UserService(conn)
-    return await service.assign_section(user_id, section_id)
+    return await service.assign_section(
+        user_id, section_id, actor_id=current_user.get("sub")
+    )

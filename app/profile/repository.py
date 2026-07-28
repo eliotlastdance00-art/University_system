@@ -27,6 +27,28 @@ class ProfileRepository:
                         """, (id,))
             result = await cur.fetchone()
         return result
+    async def get_profile_by_email(self, email:str)-> dict | None:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute("""
+                            SELECT 
+                            u.id, 
+                            u.full_name, 
+                            u.email,
+                            f.name as faculty,
+                            d.name as department,
+                            s.number as section_number,
+                            r.name as role
+                            FROM users u
+                        LEFT JOIN user_profiles up ON u.id = up.user_id
+                        LEFT JOIN faculties f ON up.faculty_id = f.id
+                        LEFT JOIN departments d ON up.department_id = d.id
+                        LEFT JOIN sections s ON up.section_id = s.id
+                        LEFT JOIN user_roles ur ON u.id = ur.user_id
+                        LEFT JOIN roles r ON ur.role_id = r.id
+                        WHERE u.email = %s
+                        """, (email,))
+            result = await cur.fetchone()
+        return result
     
 
     async def update_profile_me(self, id:int, full_name:str, email:str, faculty_id:int, department_id:int, section_id:int):

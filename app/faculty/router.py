@@ -16,7 +16,6 @@ AdminUser = Annotated[dict, Depends(admin_required)]
 DbConnection = Annotated[Connection, Depends(get_db)]
 
 
-# router.py
 @router.post(
     "/",
     response_model=FacultyResponse,
@@ -29,7 +28,7 @@ async def create_faculty(
     conn: DbConnection,
 ) -> FacultyResponse:
     service = FacultyService(conn)
-    return await service.create_faculty(data)
+    return await service.create_faculty(data, actor_id=current_user.get("sub"))
 
 
 @router.get(
@@ -62,7 +61,7 @@ async def get_faculty(
 
 
 @router.put(
-    "/",
+    "/{id}",
     response_model=dict,
     summary="Update faculties id",
     description="Admin required just",
@@ -74,7 +73,7 @@ async def update_faculty(
     conn: DbConnection,
 ) -> dict:
     service = FacultyService(conn)
-    return await service.update_faculty(id, data)
+    return await service.update_faculty(id, data, actor_id=current_user.get("sub"))
 
 
 @router.delete(
@@ -85,11 +84,11 @@ async def update_faculty(
 )
 async def delete_faculty(
     id: int,
-    conn: DbConnection,
     current_user: AdminUser,
+    conn: DbConnection,
 ) -> dict:
     service = FacultyService(conn)
-    return await service.delete_faculty(id)
+    return await service.delete_faculty(id, actor_id=current_user.get("sub"))
 
 
 @router.get("/{id}/departments", response_model=list[dict])

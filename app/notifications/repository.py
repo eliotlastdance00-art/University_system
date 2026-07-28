@@ -7,6 +7,12 @@ class DeviceTokenRepository:
     def __init__(self, conn: aiomysql.Connection):
         self._conn = conn
 
+    async def deactivate_token(self, token: str) -> None:
+        """FCM-e iberilende ýalňyşlyk (FirebaseError) berýän token-i öçürýär (is_active=FALSE)."""
+        query = "UPDATE device_tokens SET is_active = FALSE WHERE token = %s"
+        async with self._conn.cursor() as cur:
+            await cur.execute(query, (token,))
+
     async def upsert_token(self, user_id: int, token: str, device_type: str) -> None:
         query = """
             INSERT INTO device_tokens (user_id, token, device_type, is_active)
@@ -18,24 +24,19 @@ class DeviceTokenRepository:
         async with self._conn.cursor() as cur:
             await cur.execute(query, (user_id, token, device_type))
 
-    async def get_tokens_for_users(self, user_ids: list[int]) -> list[str]:
-        """Islendik audience-den soň çykan user_id list-i üçin token getirýär."""
+    async def get_tokens_for_users(self, user_ids: list[int]) -> list[tuple[int, str]]:
+        """Islendik audience-den soň çykan user_id list-i üçin (user_id, token) jübütlerini getirýär."""
         if not user_ids:
             return []
         placeholders = ",".join(["%s"] * len(user_ids))
         query = f"""
-            SELECT token FROM device_tokens
+            SELECT user_id, token FROM device_tokens
             WHERE user_id IN ({placeholders}) AND is_active = TRUE
         """
         async with self._conn.cursor() as cur:
             await cur.execute(query, tuple(user_ids))
             rows = await cur.fetchall()
-            return [row[0] for row in rows]
-
-    async def deactivate_token(self, token: str) -> None:
-        query = "UPDATE device_tokens SET is_active = FALSE WHERE token = %s"
-        async with self._conn.cursor() as cur:
-            await cur.execute(query, (token,))
+            return [(row[0], row[1]) for row in rows]
 
 
 class AudienceRepository:
