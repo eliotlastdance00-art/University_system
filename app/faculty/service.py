@@ -26,7 +26,7 @@ class FacultyService:
         return faculties or []
 
     # Get {id} faculty
-    async def get_faculty_id(self, id: int) -> list[dict]:
+    async def get_faculty_id(self, id: int) -> dict:
         faculty = await self.repo.get_faculty_by_id(id)
         if not faculty:
             raise HTTPException(status_code=404, detail="Not found this faculty!")

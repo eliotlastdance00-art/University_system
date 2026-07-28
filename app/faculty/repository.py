@@ -28,7 +28,7 @@ class FacultyRepository:
 
     # -----------Get{code}---------------
 
-    async def get_faculty_by_code(self, code: str) -> list[dict]:
+    async def get_faculty_by_code(self, code: str) -> dict | None:
         sql = "SELECT id,name,code FROM faculties WHERE code=%s"
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql, (code,))
@@ -36,7 +36,7 @@ class FacultyRepository:
 
     # -----------Get{id}---------------
 
-    async def get_faculty_by_id(self, id: int) -> list[dict]:
+    async def get_faculty_by_id(self, id: int) -> dict | None:
         sql = "SELECT id,name,code FROM faculties WHERE id=%s"
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql, (id,))
