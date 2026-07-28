@@ -5,7 +5,7 @@ class ProfileRepository:
     def __init__(self, conn):
         self.conn = conn
 
-    async def get_profile_me(self, id)->list[dict]:
+    async def get_profile_me(self, id)-> dict | None:
         async with self.conn.cursor(DictCursor) as cur:
             await cur.execute("""
                             SELECT 

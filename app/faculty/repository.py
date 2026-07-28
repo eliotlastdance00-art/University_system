@@ -11,7 +11,7 @@ class FacultyRepository:
         self.conn = conn
 
     # --------Add Faculty--------
-    async def create_faculty(self, name: str, code: str) -> list[dict]:
+    async def create_faculty(self, name: str, code: str) -> dict |None:
         sql = "INSERT INTO faculties(name,code) VALUES (%s,%s)"
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (name, code))
@@ -45,7 +45,7 @@ class FacultyRepository:
 
     # -----------Update Faculty-----------
 
-    async def update_faculty(self, id: int, name: str, code: str) -> list[dict]:
+    async def update_faculty(self, id: int, name: str, code: str) -> dict | None:
         sql = "UPDATE faculties set name=%s,code=%s where id=%s"
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (name, code, id))
@@ -53,7 +53,7 @@ class FacultyRepository:
 
     # -----------Delete Faculty--------------
 
-    async def delete_faculty(self, id: int) -> list[dict]:
+    async def delete_faculty(self, id: int) -> dict | None:
         sql = "DELETE FROM faculties WHERE id=%s"
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (id))
