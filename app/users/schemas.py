@@ -36,3 +36,7 @@ class UserSearchFilters(BaseModel):
     faculty_id: int | None = None
     department_id: int | None = None
     section_id: int | None = None
+
+class SectionAssign(BaseModel):
+    section_id: int
+

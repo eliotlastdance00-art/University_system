@@ -1,5 +1,6 @@
 from datetime import time
 
+from app.academic.assignments.exceptions import AssignmentNotFoundError
 from app.academic.assignments.repository import AssignmentRepository
 from app.academic.timetable.repository import TimetableRepository
 from app.academic.timetable.schemas import (
@@ -7,7 +8,7 @@ from app.academic.timetable.schemas import (
     TimetableEnum,
     TimetableUpdate,
 )
-from app.academic.assignments.exceptions import AssignmentNotFoundError
+from app.core.audit_log import AuditAction, AuditLogger
 
 from .exceptions import (
     InvalidTimeRangeError,
@@ -22,6 +23,7 @@ class TimetableService:
         self.conn = conn
         self.asrepo = AssignmentRepository(self.conn)
         self.repo = TimetableRepository(self.conn)
+        self.audit = AuditLogger(self.conn)
 
     async def get_or_404(self, id: int) -> dict:
         result = await self.repo.get_by_id(id)
@@ -50,7 +52,7 @@ class TimetableService:
         if existing:
             raise TimetableConflictError()
 
-    async def create(self, data: TimetableCreate) -> dict:
+    async def create(self, data: TimetableCreate, actor_id: int | None = None) -> dict:
         assignment = await self.asrepo.get_by_id(data.assignment_id)
         if not assignment:
             raise AssignmentNotFoundError()
@@ -67,7 +69,17 @@ class TimetableService:
             start_time=str(data.start_time),
             exclude_id=None,
         )
-        return await self.repo.create(data)
+        created = await self.repo.create(data)
+
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.CREATE,
+            entity_name="timetable",
+            entity_id=created["id"],
+            old_value=None,
+            new_value=dict(created),
+        )
+        return created
 
     async def get_all(self) -> list[dict]:
         timetables = await self.repo.get_all()
@@ -87,7 +99,9 @@ class TimetableService:
     async def get_day_group(self, day: TimetableEnum, section_id: int) -> list[dict]:
         result = await self.repo.get_day_group(section_id, day)
         if not result:
-            raise TimetableNotFoundError("No timetable found for this group on this day")
+            raise TimetableNotFoundError(
+                "No timetable found for this group on this day"
+            )
         return result
 
     async def get_teacher_timetable(self, user_id: int) -> list[dict]:
@@ -104,7 +118,9 @@ class TimetableService:
             )
         return teacher
 
-    async def update(self, id: int, data: TimetableUpdate) -> dict:
+    async def update(
+        self, id: int, data: TimetableUpdate, actor_id: int | None = None
+    ) -> dict:
         current = await self.get_or_404(id)
 
         start_time = data.start_time or current["start_time"]
@@ -128,12 +144,32 @@ class TimetableService:
             )
 
         await self.repo.update(id, data)
-        return await self.get_or_404(id)
+        updated = await self.get_or_404(id)
 
-    async def delete(self, id: int) -> dict:
-        await self.get_or_404(id)
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.UPDATE,
+            entity_name="timetable",
+            entity_id=id,
+            old_value=dict(current),
+            new_value=dict(updated),
+        )
+        return updated
+
+    async def delete(self, id: int, actor_id: int | None = None) -> dict:
+        current = await self.get_or_404(id)
         deleted = await self.repo.delete(id)
         if not deleted:
             from app.core.exceptions import AppError
+
             raise AppError("Failed to delete timetable entry")
+
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.DELETE,
+            entity_name="timetable",
+            entity_id=id,
+            old_value=dict(current),
+            new_value=None,
+        )
         return {"message": f"ID={id} succesfully deleted"}

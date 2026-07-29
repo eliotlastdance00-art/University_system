@@ -28,6 +28,11 @@ class UserService:
         self.repo = UsersRepository(self.conn)
         self.audit = AuditLogger(self.conn)
 
+    # _transaction() aýryldy: begin/commit/rollback eýýäm
+    # app.database.get_db() dependency-de bir gezek, request-level
+    # dolandyrylýar. Service-de ikinji gezek açsak, iki gatlak
+    # transaction çaknyşygy döreýärdi (double-commit).
+
     async def _get_or_404(self, id: int) -> dict:
         """Kullanıcı varlığını kontrol eden ortak helper metot."""
         user = await self.repo.get_by_id_users(id)
@@ -35,7 +40,9 @@ class UserService:
             raise UserNotFoundError()
         return user
 
-    async def user_create(self, data: UserCreate, actor_id: int | None = None) -> UserResponse:
+    async def user_create(
+        self, data: UserCreate, actor_id: int | None = None
+    ) -> UserResponse:
         existing_user = await self.repo.get_by_email_users(data.email)
         if existing_user:
             raise UserAlreadyExistsError()
@@ -46,7 +53,6 @@ class UserService:
         await self.repo.create_user(data.full_name, data.email, data.password)
         created_user = await self.repo.get_by_email_users(data.email)
 
-        # create-de old_value ýok, sebäbi entek ýazgy döremänkä "köne ýagdaý" bolmaýar
         await self.audit.log(
             actor_id=actor_id,
             action=AuditAction.CREATE,
@@ -66,8 +72,13 @@ class UserService:
         user = await self._get_or_404(user_id)
         return UserResponse(**user)
 
-    async def update_user(self, id: int, data: UserUpdate, actor_id: int | None = None) -> dict:
-        current_user = await self._get_or_404(id)  # <- bu eýýäm "old_value" bolýar, ony gaýtadan sorama
+    async def update_user(
+        self, id: int, data: UserUpdate, actor_id: int | None = None
+    ) -> dict:
+        if data.password is not None and len(data.password) < 8:
+            raise WeakPasswordError()
+
+        current_user = await self._get_or_404(id)
 
         new_full_name = (
             data.full_name if data.full_name is not None else current_user["full_name"]
@@ -96,6 +107,16 @@ class UserService:
             old_value=_strip_sensitive(current_user),
             new_value=_strip_sensitive(updated_user),
         )
+
+        if data.password is not None:
+            await self.audit.log(
+                actor_id=actor_id,
+                action=AuditAction.PASSWORD_CHANGE,
+                entity_name="user",
+                entity_id=id,
+                old_value=None,
+                new_value=None,
+            )
 
         return {"message": "Changed user ✅"}
 
@@ -156,7 +177,9 @@ class UserService:
         await self._get_or_404(user_id)
         return await self.repo.get_user_roles_all(user_id)
 
-    async def delete_role(self, user_id: int, role_id: int, actor_id: int | None = None) -> dict:
+    async def delete_role(
+        self, user_id: int, role_id: int, actor_id: int | None = None
+    ) -> dict:
         await self._get_or_404(user_id)
 
         existing_role = await self.repo.get_user_role(user_id, role_id)
@@ -188,10 +211,10 @@ class UserService:
             )
         ]
 
-    async def assign_section(self, user_id: int, section_id: int, actor_id: int | None = None):
-        user = await self.repo.get_by_id_users(user_id)
-        if not user:
-            raise UserNotFoundError()
+    async def assign_section(
+        self, user_id: int, section_id: int, actor_id: int | None = None
+    ):
+        user = await self._get_or_404(user_id)
 
         role = await self.repo.get_role_by_name("student")
         if not role:
@@ -201,13 +224,15 @@ class UserService:
         if not is_student:
             raise StudentRoleRequiredError()
 
-        section = await self.repo.get_section_by_id(section_id)
+        section = await self.repo.get_section_by_id_for_update(section_id)
         if not section:
             raise SectionNotFoundError()
 
         count = await self.repo.get_section_student_count(section_id)
         if count["total"] >= section["capacity"]:
             raise SectionFullError()
+
+        old_section_id = user.get("section_id")
 
         await self.repo.update_user_section(user_id, section_id)
 
@@ -216,7 +241,7 @@ class UserService:
             action=AuditAction.SECTION_ASSIGN,
             entity_name="user",
             entity_id=user_id,
-            old_value=None,
+            old_value={"section_id": old_section_id},
             new_value={"section_id": section_id},
         )
 

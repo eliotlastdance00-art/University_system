@@ -37,7 +37,7 @@ async def create_timetable(
     conn: DbConnection,
 ) -> dict:
     service = TimetableService(conn)
-    return await service.create(data)
+    return await service.create(data, actor_id=current_user["sub"])
 
 
 @router.get(
@@ -97,7 +97,7 @@ async def get_group_day_timetable(
 async def get_teacher_timetable(
     current_user: CurrentTeacher,
     conn: DbConnection,
-)-> list[dict]:
+) -> list[dict]:
     service = TimetableService(conn)
     return await service.get_teacher_timetable(current_user["id"])
 

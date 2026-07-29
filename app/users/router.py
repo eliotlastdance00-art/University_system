@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.core.dependencies import admin_required
 
 from .schemas import (
+    SectionAssign,
     UserCreate,
     UserResponse,
     UserRoleCreate,
@@ -72,11 +73,11 @@ async def get_user(
     return await service.get_user_by_id(id)
 
 
-@router.put(
+@router.patch(
     "/{id}",
     response_model=dict,
     summary="Update user",
-    description="Update user fields. Keeps original values if fields are omitted in request.",
+    description="Partially update user fields. Omitted fields keep their current value.",
 )
 async def update_user(
     id: int,
@@ -157,14 +158,19 @@ async def delete_role(
     return await service.delete_role(user_id, role_id, actor_id=current_user.get("sub"))
 
 
-@router.post("/{user_id}/assign-section")
+@router.post(
+    "/{user_id}/assign-section",
+    response_model=dict,
+    summary="Assign user to section",
+    description="Assign a student user to an academic section, subject to capacity limits.",
+)
 async def assign_section(
     user_id: int,
-    section_id: int,
+    data: SectionAssign,
     current_user: CurrentUser,
     conn: DbConnection,
-):
+) -> dict:
     service = UserService(conn)
     return await service.assign_section(
-        user_id, section_id, actor_id=current_user.get("sub")
+        user_id, data.section_id, actor_id=current_user.get("sub")
     )
