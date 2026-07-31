@@ -19,8 +19,3 @@ FastAPI + MySQL + aiomysql bilen
 ## Gurnamak
 pip install -r requirements.txt
 uvicorn app.main:app --reload
-
-## Project Documentation
-- [Arhitektura we Kemçilikler (Architecture)](architecture.md)
-- [Edilmeli Işler we Buglar (To-Do)](todo.md)
-- [Meýilnama (Plan)](plan.md)
