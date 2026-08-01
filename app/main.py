@@ -37,6 +37,7 @@ from app.faculty.router import router as faculty_router
 from app.notifications.router import router as notification_router
 from app.profile.router import router as profile_router
 from app.users.router import router as user_router
+from app.dashboard.router import router as dashboard_router
 
 # ─── Lifespan ───────────────────────────────────────────────
 
@@ -132,6 +133,9 @@ app.include_router(cohort_router, prefix=f"{PREFIX}/cohorts", tags=["Cohorts"])
 app.include_router(profile_router, prefix=f"{PREFIX}/profile", tags=["Profile"])
 app.include_router(
     notification_router, prefix=f"{PREFIX}/notification", tags=["Notification"]
+)
+app.include_router(
+    dashboard_router, prefix=f"{PREFIX}/dashboard", tags=["Dashboard"]
 )
 
 

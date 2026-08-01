@@ -54,7 +54,7 @@ class UserService:
         created_user = await self.repo.get_by_email_users(data.email)
 
         await self.audit.log(
-            actor_id=actor_id,
+            actor_id=actor_id or created_user["id"],
             action=AuditAction.CREATE,
             entity_name="user",
             entity_id=created_user["id"],

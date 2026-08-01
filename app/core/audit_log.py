@@ -38,20 +38,21 @@ class AuditLogger:
         old_value: dict[str, Any] | None = None,
         new_value: dict[str, Any] | None = None,
     ) -> None:
-        await self.conn.execute(
-            """
-            INSERT INTO audit_logs
-                (actor_id, action, entity_name, entity_id, old_value, new_value, timestamp)
-            VALUES
-                (:actor_id, :action, :entity_name, :entity_id, :old_value, :new_value, :timestamp)
-            """,
-            {
-                "actor_id": actor_id,
-                "action": action.value,
-                "entity_name": entity_name,
-                "entity_id": entity_id,
-                "old_value": json.dumps(old_value, default=str) if old_value is not None else None,
-                "new_value": json.dumps(new_value, default=str) if new_value is not None else None,
-                "timestamp": datetime.now(UTC),
-            },
-        )
+        async with self.conn.cursor() as cursor:
+            await cursor.execute(
+                """
+                INSERT INTO audit_logs
+                    (actor_id, action, entity_name, entity_id, old_value, new_value, timestamp)
+                VALUES
+                    (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    actor_id,
+                    action.value,
+                    entity_name,
+                    entity_id,
+                    json.dumps(old_value, default=str) if old_value is not None else None,
+                    json.dumps(new_value, default=str) if new_value is not None else None,
+                    datetime.now(UTC),
+                ),
+            )
