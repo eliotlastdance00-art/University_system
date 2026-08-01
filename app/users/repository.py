@@ -145,7 +145,7 @@ class UsersRepository:
             sql += " AND u.full_name LIKE %s"
             params.append(f"%{name}%")
         if role:
-            sql += " AND ur.role_id=%s"
+            sql += " AND r.name=%s"
             params.append(role)
         if department_id:
             sql += " AND up.department_id=%s"

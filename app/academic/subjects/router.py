@@ -19,6 +19,12 @@ async def post_subject(data: SubjectCreate, conn: DbConnection) -> SubjectRespon
     return await service.create_subject(data)
 
 
+@router.get("/", response_model=list[SubjectResponse])
+async def get_all_subjects(conn: DbConnection):
+    service = SubjectService(conn)
+    return await service.get_all_subject()
+
+
 @router.get("/faculty/{faculty_id}", response_model=list[SubjectResponse])
 async def get_faculty_subjects(faculty_id: int, conn: DbConnection):
     service = SubjectService(conn)

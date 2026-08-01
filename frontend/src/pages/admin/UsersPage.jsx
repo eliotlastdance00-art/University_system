@@ -5,7 +5,7 @@ import {
 } from '../../api/users';
 import {
   Users, Plus, Search, Edit3, Trash2, Shield, X,
-  ChevronDown, UserCheck, UserX, Eye, Filter, RefreshCw
+  ChevronDown, UserCheck, UserX, Eye, Filter, RefreshCw, Download, Upload
 } from 'lucide-react';
 
 // ────────────────────────────────────────────────────────────
@@ -260,6 +260,7 @@ const UsersPage = () => {
   // Search / filter
   const [searchText, setSearchText] = useState('');
   const [filterActive, setFilterActive] = useState('all'); // all, active, inactive
+  const [filterRole, setFilterRole] = useState(''); // admin, dean, teacher, student
   const [showFilters, setShowFilters] = useState(false);
 
   // Modals
@@ -279,14 +280,19 @@ const UsersPage = () => {
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getUsers();
+      let res;
+      if (filterRole) {
+        res = await searchUsers({ role: filterRole });
+      } else {
+        res = await getUsers();
+      }
       setUsers(res.data);
       setError(null);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to load users');
     }
     setLoading(false);
-  }, []);
+  }, [filterRole]);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
@@ -347,6 +353,33 @@ const UsersPage = () => {
     return matchesSearch && matchesActive;
   });
 
+  // ─── Export CSV ────────────────────────────────────────
+
+  const handleExportCSV = () => {
+    if (filtered.length === 0) {
+      showToast('No users to export', 'error');
+      return;
+    }
+    const headers = ['ID', 'Name', 'Email', 'Status'];
+    const rows = filtered.map(u => [
+      u.id,
+      `"${u.full_name}"`,
+      u.email,
+      u.is_active ? 'Active' : 'Inactive'
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), ...rows.map(e => e.join(','))].join('\\n');
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "users_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('Export successful');
+  };
+
   // ─── Render ────────────────────────────────────────────
 
   if (loading) {
@@ -394,6 +427,12 @@ const UsersPage = () => {
           <p className="page-subtitle">{users.length} registered user{users.length !== 1 ? 's' : ''} in the system</p>
         </div>
         <div className="page-actions">
+          <button className="btn btn-secondary" onClick={handleExportCSV} title="Export CSV">
+            <Download size={16} /> Export
+          </button>
+          <button className="btn btn-secondary" onClick={() => showToast('Import functionality will be implemented in the backend', 'success')} title="Import CSV">
+            <Upload size={16} /> Import
+          </button>
           <button className="btn btn-secondary" onClick={loadUsers} title="Refresh">
             <RefreshCw size={16} />
           </button>
@@ -440,6 +479,19 @@ const UsersPage = () => {
                 <option value="all">All</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            
+            <div className="form-group" style={{ minWidth: 140 }}>
+              <label className="form-label" style={{ fontSize: '11px' }}>Role</label>
+              <select className="form-select" value={filterRole}
+                onChange={e => setFilterRole(e.target.value)}
+                style={{ height: 36, fontSize: 'var(--font-sm)' }}>
+                <option value="">All Roles</option>
+                <option value="admin">Admin</option>
+                <option value="dean">Dean</option>
+                <option value="teacher">Teacher</option>
+                <option value="student">Student</option>
               </select>
             </div>
           </div>

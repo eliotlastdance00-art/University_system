@@ -192,7 +192,7 @@ class AuthService:
             except (TypeError, ValueError) as e:
                 raise InvalidUserIdInTokenError() from e
 
-            user = await self.user_repo.get_by_id_users(user_id_int)
+            user = await self.repo.get_user_for_login_by_id(user_id_int)
             if not user:
                 from app.users.exceptions import UserNotFoundError
 

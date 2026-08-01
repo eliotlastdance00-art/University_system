@@ -12,7 +12,9 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import UsersPage from './pages/admin/UsersPage';
 import FacultiesPage from './pages/admin/FacultiesPage';
 import DepartmentsPage from './pages/admin/DepartmentsPage';
+import AssignmentsPage from './pages/admin/AssignmentsPage';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import TeacherAssignmentsPage from './pages/teacher/TeacherAssignmentsPage';
 import StudentDashboard from './pages/student/StudentDashboard';
 import { useAuth } from './contexts/AuthContext';
 
@@ -42,6 +44,7 @@ const App = () => {
                 <Route path="users" element={<UsersPage />} />
                 <Route path="faculties" element={<FacultiesPage />} />
                 <Route path="departments" element={<DepartmentsPage />} />
+                <Route path="assignments" element={<AssignmentsPage />} />
               </Route>
 
               {/* Dean Routes */}
@@ -52,6 +55,7 @@ const App = () => {
               {/* Teacher Routes */}
               <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']} />}>
                 <Route path="dashboard" element={<TeacherDashboard />} />
+                <Route path="assignments" element={<TeacherAssignmentsPage />} />
               </Route>
 
               {/* Student Routes */}

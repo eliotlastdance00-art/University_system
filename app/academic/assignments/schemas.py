@@ -64,7 +64,7 @@ class AssignmentDetailResponse(BaseModel):
 
     # Topar
     section_id: int
-    group_name: str
+    section_number: int
 
     class Config:
         from_attributes = True
