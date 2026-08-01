@@ -29,6 +29,26 @@ class AuthRepository:
             await cursor.execute(sql, (email,))
             return await cursor.fetchone()
 
+    async def get_user_for_login_by_id(self, user_id: int):
+        sql = """
+        SELECT 
+            u.id,
+            u.full_name,
+            u.password,
+            u.is_active,
+            u.email,
+            r.name AS role
+            FROM users u 
+            JOIN user_roles ur ON u.id=ur.user_id
+            JOIN roles r  ON ur.role_id=r.id
+            WHERE u.id=%s
+            ORDER BY r.level ASC
+            LIMIT 1
+        """
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql, (user_id,))
+            return await cursor.fetchone()
+
     async def save_refresh_token(self, data: SaveRefreshToken):
         sql = "INSERT INTO refresh_tokens(user_id,token,expires_at,is_revoked) VALUES(%s,%s,%s,%s)"
         async with self.conn.cursor(DictCursor) as cur:
@@ -41,7 +61,7 @@ class AuthRepository:
         sql = """SELECT
                     r.id,
                     r.user_id,
-                    u.name AS user_name,
+                    u.full_name AS user_name,
                     r.token,
                     r.expires_at,
                     r.is_revoked

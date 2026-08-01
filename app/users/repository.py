@@ -7,12 +7,15 @@ class UsersRepository:
     def __init__(self, conn):
         self.conn = conn
 
+    # NOTE: Bu repo metodlarynyň hiç biri indi `commit()` çagyrmaýar.
+    # Transaction-y (begin/commit/rollback) diňe service gatlagy dolandyrýar,
+    # sebäbi bir transaction-yň içinde birnäçe repo çagyryşy + audit log bolup biler.
+
     async def create_user(self, full_name: str, email: str, password: str):
         hash_pass = hash_password(password)
         sql = "INSERT INTO users(full_name,email,password) VALUES (%s,%s,%s)"
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql, (full_name, email, hash_pass))
-            return await self.conn.commit()
 
     async def get_all_users(self):
         sql = """
@@ -27,11 +30,17 @@ class UsersRepository:
             return await cursor.fetchall()
 
     async def get_by_id_users(self, id: int):
-        sql = "SELECT id,full_name,email,is_active FROM users WHERE id=%s"
+        # section_id goşuldy — assign_section-da öňki ýagdaýy audit üçin gerek
+        sql = """
+        SELECT u.id, u.full_name, u.email, u.is_active, up.section_id
+        FROM users u
+        LEFT JOIN user_profiles up ON u.id = up.user_id
+        WHERE u.id = %s
+        """
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql, (id,))
             return await cursor.fetchone()
-
+        
     async def get_by_email_users(self, email: str):
         sql = "SELECT id,full_name,email,is_active FROM users WHERE email=%s "
         async with self.conn.cursor(DictCursor) as cursor:
@@ -42,10 +51,9 @@ class UsersRepository:
         self, id: int, full_name: str, email: str, password: str, is_active: bool
     ):
         hash_pass = hash_password(password)
-        sql = "UPDATE users SET  full_name=%s,email=%s,password=%s,is_active=%s WHERE id=%s"
+        sql = "UPDATE users SET full_name=%s,email=%s,password=%s,is_active=%s WHERE id=%s"
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql, (full_name, email, hash_pass, is_active, id))
-        return await self.conn.commit()
 
     async def update_user_without_password(
         self, id: int, full_name: str, email: str, is_active: bool
@@ -53,13 +61,11 @@ class UsersRepository:
         sql = "UPDATE users SET full_name=%s, email=%s, is_active=%s WHERE id=%s"
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql, (full_name, email, is_active, id))
-        return await self.conn.commit()
 
     async def delete_user(self, id: int):
         sql = "DELETE FROM users WHERE id=%s"
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (id,))
-        return await self.conn.commit()
 
     async def role_by_id(self, role_id: int):
         sql = "SELECT id,name FROM roles WHERE id=%s"
@@ -85,7 +91,6 @@ class UsersRepository:
         sql = "INSERT INTO user_roles(user_id,role_id) VALUES (%s,%s)"
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (user_id, role_id))
-        return await self.conn.commit()
 
     async def assign_profile(
         self,
@@ -99,7 +104,6 @@ class UsersRepository:
         sql = "INSERT INTO user_profiles(user_id,faculty_id,department_id,section_id) VALUES (%s,%s,%s,%s)"
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (user_id, faculty_id, department_id, section_id))
-        return await self.conn.commit()
 
     async def get_user_roles_all(self, user_id: int):
         sql = "SELECT * FROM user_roles WHERE user_id=%s"
@@ -111,7 +115,6 @@ class UsersRepository:
         sql = "DELETE FROM user_roles WHERE user_id=%s AND role_id=%s"
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (user_id, role_id))
-        await self.conn.commit()
 
     async def search_users(
         self,
@@ -142,7 +145,7 @@ class UsersRepository:
             sql += " AND u.full_name LIKE %s"
             params.append(f"%{name}%")
         if role:
-            sql += " AND ur.role_id=%s"
+            sql += " AND r.name=%s"
             params.append(role)
         if department_id:
             sql += " AND up.department_id=%s"
@@ -159,7 +162,20 @@ class UsersRepository:
             return await cursor.fetchall()
 
     async def get_section_by_id(self, section_id: int):
+        """Gulplamasyz okamak — diňe maglumat görkezmek üçin (mm. section detail sahypasy)."""
         sql = "SELECT id, capacity FROM sections WHERE id = %s"
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql, (section_id,))
+            return await cursor.fetchone()
+
+    async def get_section_by_id_for_update(self, section_id: int):
+        """
+        Setiri gulplap okaýar (SELECT ... FOR UPDATE).
+        Diňe açyk transaction içinde (self.conn.begin() soň) ulanylmaly —
+        ýogsam autocommit sebäpli gulplama derrew boşap gidýär we
+        capacity barlagy bilen update arasyndaky race condition-dan goramaýar.
+        """
+        sql = "SELECT id, capacity FROM sections WHERE id = %s FOR UPDATE"
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql, (section_id,))
             return await cursor.fetchone()
@@ -174,4 +190,3 @@ class UsersRepository:
         sql = "UPDATE user_profiles SET section_id = %s WHERE user_id = %s"
         async with self.conn.cursor() as cursor:
             await cursor.execute(sql, (section_id, user_id))
-        await self.conn.commit()

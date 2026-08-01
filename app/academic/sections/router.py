@@ -23,7 +23,7 @@ async def create_section(data: SectionCreate, conn: DbConnection):
 
 @router.get("/", response_model=list[dict])
 async def get_all_sections(
-    conn: DbConnection, skip: int = 0, limit: int = 10
+    conn: DbConnection, skip: int = 0, limit: int = 100
 ):
     service = SectionService(conn)
     return await service.get_all_sections(skip, limit)

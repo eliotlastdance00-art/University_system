@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "University System"
     APP_VERSION: str = "2.0.0"
     DEBUG: bool = False
-    ALLOWED_ORIGINS: str = "*"
+    ALLOWED_ORIGINS: str = "http://localhost:5173"
 
     class Config:
         env_file = ".env"

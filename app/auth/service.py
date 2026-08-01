@@ -1,8 +1,7 @@
 import hmac
 import logging
-
-logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 
 from fastapi import Response
 
@@ -37,13 +36,26 @@ from .exceptions import (
 from .repository import AuthRepository
 from .schemas import LoginRequest, TokenResponse
 
+logger = logging.getLogger(__name__)
+
+# Shared cookie attributes — MUST stay identical between set_cookie and
+# delete_cookie, or the browser won't match the cookie to clear it.
+OTP_COOKIE_KEY: str = "otp_token"
+OTP_COOKIE_PATH: str = "/"
+OTP_COOKIE_HTTPONLY: bool = True
+OTP_COOKIE_SECURE: bool = False
+OTP_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
+
 
 class AuthService:
+    """Handles credential verification, OTP issuance/verification, and refresh-token lifecycle."""
+
     def __init__(self, conn):
         self.repo = AuthRepository(conn)
         self.user_repo = UsersRepository(conn)
 
     async def login(self, data: LoginRequest, response: Response):
+        """Verify email/password, then trigger OTP issuance as the second factor."""
         try:
             user = await self.repo.get_user_for_login(data.email)
             if not user or not verify_password(user["password"], data.password):
@@ -65,39 +77,32 @@ class AuthService:
             raise AppError(f"Login Error: {e!s}") from e
 
     async def send_otp(self, request: SendOtpRequest, response: Response):
+        """Generate an OTP, embed it in a signed short-lived token, email it, and cookie the token."""
         try:
-            # 1. Ilki bilen OTP koduny döredýäris
             otp = create_otp()
-
-            # 2. Döredilen OTP we email esasynda JWT token dörýär
             token = create_otp_token(request.email, otp)
-
-            # 3. Email arkaly ulanyja ugradylýar
             await send_otp_email(request.email, otp)
 
-            # 4. Cookie goýulýar
             response.set_cookie(
-                key="otp_token",
+                key=OTP_COOKIE_KEY,
                 value=token,
-                httponly=True,
-                secure=False,
-                samesite="lax",
-                path="/",
+                path=OTP_COOKIE_PATH,
+                httponly=OTP_COOKIE_HTTPONLY,
+                secure=OTP_COOKIE_SECURE,
+                samesite=OTP_COOKIE_SAMESITE,
             )
             return {"message": "OTP sent to email"}
 
         except AppError:
             raise
         except Exception as e:
-            # Terminalda jikme-jik görmek üçin
             logger.exception("Send OTP Error occurred")
-            raise AppError(
-                f"Failed to send OTP email. Internal Error: {e!s}"
-            ) from e
+            raise AppError(f"Failed to send OTP email. Internal Error: {e!s}") from e
 
     async def verify_otp(
         self, request: VerifyOtpRequest, otp_token: str, response: Response
     ):
+        """Validate the OTP against the cookie-bound token, then issue access + refresh tokens."""
         try:
             if not otp_token:
                 raise MissingOtpTokenError()
@@ -119,19 +124,28 @@ class AuthService:
             ):
                 raise InvalidOtpCodeError()
 
+            # BUG FIX: must match OTP_COOKIE_KWARGS exactly, or the delete is a no-op client-side.
             response.delete_cookie(
-                key="otp_token", path="/", httponly=True, secure=True, samesite="strict"
+                key=OTP_COOKIE_KEY,
+                path=OTP_COOKIE_PATH,
+                httponly=OTP_COOKIE_HTTPONLY,
+                secure=OTP_COOKIE_SECURE,
+                samesite=OTP_COOKIE_SAMESITE,
             )
 
             user = await self.repo.get_user_for_login(request.email)
             if not user:
                 from app.users.exceptions import UserNotFoundError
+
                 raise UserNotFoundError()
 
             token_data = {"sub": str(user["id"]), "role": user["role"]}
             access_token = create_token(token_data)
+            # BUG FIX: use the same claim shape ("sub" + "type") the rotation path in
+            # refresh_token() expects. The old {"user_id":.., "type":"refresh"} shape
+            # meant the very first refresh call after login would fail on payload.get("sub").
             refresh_token = create_refresh_token(
-                {"user_id": user["id"], "type": "refresh"}
+                {"sub": str(user["id"]), "type": "refresh"}
             )
 
             expire_at = datetime.now(timezone.utc) + timedelta(
@@ -144,7 +158,6 @@ class AuthService:
                 expires_at=expire_at,
                 is_revoked=False,
             )
-
             await self.repo.save_refresh_token(refresh_data)
 
             return TokenResponse(
@@ -156,13 +169,19 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
+            logger.exception("Verify OTP Error occurred")
             raise AppError("An unexpected error occurred during verification") from e
 
     async def refresh_token(self, refresh_token: str) -> TokenResponse:
+        """Rotate a valid, unrevoked refresh token for a new access + refresh token pair."""
         try:
             payload = decode_token(refresh_token)
             if not payload:
                 raise InvalidRefreshTokenError()
+
+            # Reject access tokens (or anything else) presented as a refresh token.
+            if payload.get("type") != "refresh":
+                raise InvalidRefreshPayloadError()
 
             user_id = payload.get("sub")
             if user_id is None:
@@ -173,9 +192,10 @@ class AuthService:
             except (TypeError, ValueError) as e:
                 raise InvalidUserIdInTokenError() from e
 
-            user = await self.user_repo.get_by_id_users(user_id_int)
+            user = await self.repo.get_user_for_login_by_id(user_id_int)
             if not user:
                 from app.users.exceptions import UserNotFoundError
+
                 raise UserNotFoundError()
             if not user["is_active"]:
                 raise AccountInactiveError()
@@ -186,9 +206,14 @@ class AuthService:
             if token_row.get("is_revoked"):
                 raise TokenRevokedError()
 
-            new_data = {"sub": str(user["id"]), "role": user["role"]}
-            new_access_token = create_token(new_data)
-            new_refresh_token = create_refresh_token(new_data)
+            new_access_token = create_token(
+                {"sub": str(user["id"]), "role": user["role"]}
+            )
+            # BUG FIX: rotated refresh token must carry the SAME claim shape as the
+            # original issuance in verify_otp() — "sub" + "type", not "role".
+            new_refresh_token = create_refresh_token(
+                {"sub": str(user["id"]), "type": "refresh"}
+            )
 
             new_expires_at = datetime.now(timezone.utc) + timedelta(
                 days=settings.REFRESH_TOKEN_EXPIRE_DAYS
@@ -207,13 +232,16 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
+            logger.exception("Refresh Token Error occurred")
             raise AppError("An unexpected error occurred during token refresh") from e
 
     async def logout(self, refresh_token: str):
+        """Revoke the given refresh token, ending the session."""
         try:
             await self.repo.revoke_token(refresh_token)
             return {"detail": "Logout successful"}
         except AppError:
             raise
         except Exception as e:
+            logger.exception("Logout Error occurred")
             raise AppError("An error occurred during logout") from e

@@ -1,3 +1,5 @@
+from typing import cast
+
 from app.core.audit_log import AuditAction, AuditLogger
 from app.profile.repository import ProfileRepository
 from app.profile.schemas import UpdateProfile
@@ -27,16 +29,30 @@ class ProfileService:
         result = await self.repo.get_profile_me(data.id)
         if not result:
             raise ProfileNotFoundError()
+
         if data.email and data.email != result["email"]:
             email_owner = await self.repo.get_profile_by_email(data.email)
             if email_owner and email_owner["id"] != data.id:
                 raise EmailAlreadyInUseError()
 
-        new_full_name = data.name or result["full_name"]
-        new_email = data.email or result["email"]
-        new_faculty_id = data.faculty_id or result["faculty_id"]
-        new_department_id = data.department_id or result["department_id"]
-        new_section_id = data.section_id or result["section_id"]
+        # Schema (`UpdateProfile._validate_update`) eýýäm kepil geçýär: azyndan
+        # bir meýdan iberilen we iberilenleriň hiç biri `null` däl. Şonuň
+        # üçin bu ýerde diňe "iberildimi ýokmy" barlanýar, `cast` bilen
+        # pyright-a runtime-da eýýäm baradaky kepili aýdýarys.
+        sent = data.model_fields_set
+        new_full_name = cast(str, data.name) if "name" in sent else result["full_name"]
+        new_email = cast(str, data.email) if "email" in sent else result["email"]
+        new_faculty_id = (
+            cast(int, data.faculty_id) if "faculty_id" in sent else result["faculty_id"]
+        )
+        new_department_id = (
+            cast(int, data.department_id)
+            if "department_id" in sent
+            else result["department_id"]
+        )
+        new_section_id = (
+            cast(int, data.section_id) if "section_id" in sent else result["section_id"]
+        )
 
         await self.repo.update_profile_me(
             id=data.id,
@@ -59,6 +75,8 @@ class ProfileService:
             old_value=_strip_sensitive(result),
             new_value=_strip_sensitive(updated),
         )
+
+        return _strip_sensitive(updated)
 
     async def update_password_me(self, id, new_password, actor_id: int | None = None):
         await self.repo.update_password_me(id, new_password)
