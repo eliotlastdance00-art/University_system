@@ -16,6 +16,10 @@ import AssignmentsPage from './pages/admin/AssignmentsPage';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import TeacherAssignmentsPage from './pages/teacher/TeacherAssignmentsPage';
 import StudentDashboard from './pages/student/StudentDashboard';
+import StudentTimetablePage from './pages/student/TimetablePage';
+import StudentGradesPage from './pages/student/GradesPage';
+import StudentAttendancePage from './pages/student/AttendancePage';
+import StudentAssignmentsPage from './pages/student/AssignmentsPage';
 import { useAuth } from './contexts/AuthContext';
 
 const RootRedirect = () => {
@@ -61,6 +65,10 @@ const App = () => {
               {/* Student Routes */}
               <Route path="/student" element={<ProtectedRoute allowedRoles={['student']} />}>
                 <Route path="dashboard" element={<StudentDashboard />} />
+                <Route path="timetable" element={<StudentTimetablePage />} />
+                <Route path="grades" element={<StudentGradesPage />} />
+                <Route path="attendance" element={<StudentAttendancePage />} />
+                <Route path="assignments" element={<StudentAssignmentsPage />} />
               </Route>
 
               {/* Shared Routes */}

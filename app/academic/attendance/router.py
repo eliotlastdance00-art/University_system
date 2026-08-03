@@ -11,12 +11,19 @@ from app.academic.attendance.schemas import (
 )
 from app.academic.attendance.service import AttendanceService
 from app.core.database import get_db
-from app.core.dependencies import admin_or_teacher, admin_required
+from app.core.dependencies import (
+    admin_or_student,
+    admin_or_teacher,
+    admin_required,
+    get_current_user,
+)
 
 router = APIRouter()
 
 AdminOrTeacherUser = Annotated[dict, Depends(admin_or_teacher)]
 AdminUser = Annotated[dict, Depends(admin_required)]
+AdminOrStudent = Annotated[dict, Depends(admin_or_student)]
+CurrentUser = Annotated[dict, Depends(get_current_user)]
 DbConnection = Annotated[Connection, Depends(get_db)]
 
 
@@ -110,11 +117,25 @@ async def get_lesson_stats(
 )
 async def get_by_student(
     student_id: int,
-    current_user: AdminUser,
+    current_user: AdminOrStudent,
     conn: DbConnection,
 ):
     service = AttendanceService(conn)
     return await service.get_by_student(student_id)
+
+
+@router.get(
+    "/my/stats",
+    response_model=AttendanceStatsResponse,
+    summary="My attendance statistics",
+    description="Student fetches their own attendance stats using JWT sub field.",
+)
+async def get_my_stats(
+    current_user: CurrentUser,
+    conn: DbConnection,
+):
+    service = AttendanceService(conn)
+    return await service.get_student_stats(current_user["sub"])
 
 
 @router.get(
@@ -124,7 +145,7 @@ async def get_by_student(
 )
 async def get_student_stats(
     student_id: int,
-    current_user: AdminUser,
+    current_user: AdminOrStudent,
     conn: DbConnection,
 ):
     service = AttendanceService(conn)

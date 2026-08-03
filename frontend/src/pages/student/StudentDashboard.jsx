@@ -20,65 +20,108 @@ const StatCard = ({ title, value, icon, color, subtitle }) => (
   </div>
 );
 
-// ────────────────────────────────────────────────────────────
-// FAKE DATA FOR UI DESIGN
-// ────────────────────────────────────────────────────────────
-const MOCK_DATA = {
-  stats: {
-    gpa: '3.84',
-    attendance: '92',
-    credits: 18,
-    upcomingDeadlines: 3
-  },
-  todaySchedule: [
-    { id: 1, subject: 'Data Structures', type: 'Lecture', time: '09:00 - 10:30', room: 'Lab 402', teacher: 'Dr. Alan Turing', status: 'completed' },
-    { id: 2, subject: 'Algorithms', type: 'Lecture', time: '11:00 - 12:30', room: 'Room 305', teacher: 'Prof. John Doe', status: 'active' },
-    { id: 3, subject: 'Web Engineering', type: 'Lab', time: '14:00 - 15:30', room: 'Lab 401', teacher: 'Dr. Jane Smith', status: 'upcoming' },
-  ],
-  assignments: [
-    { id: 1, title: 'Binary Trees Project', subject: 'Data Structures', dueDate: 'Tomorrow, 23:59', type: 'Assignment' },
-    { id: 2, title: 'Midterm Exam', subject: 'Algorithms', dueDate: 'Friday, 10:00', type: 'Exam' }
-  ],
-  recentGrades: [
-    { subject: 'Database Systems', grade: 'A', points: 95 },
-    { subject: 'Operating Systems', grade: 'A-', points: 88 },
-  ]
-};
+import { getMyProfile } from '../../api/profile';
+import { getGradesForStudent } from '../../api/grades';
+import { getMyAttendanceStats } from '../../api/attendance';
+import { getGroupTimetable } from '../../api/timetables';
+import { getAssignmentsByGroup } from '../../api/assignments';
+import PageShell from '../../components/PageShell';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Simulate API fetch (caching simulation placeholder)
-    const fetchMockData = async () => {
+    const fetchDashboardData = async () => {
       setLoading(true);
-      await new Promise(r => setTimeout(r, 600)); // fake delay
-      setData(MOCK_DATA);
-      setLoading(false);
+      try {
+        // 1. Get profile
+        const { data: profile } = await getMyProfile();
+        const studentId = profile.id;
+        const sectionId = profile.section_id;
+
+        // 2. Fetch parallel data
+        const [gradesRes, attRes, timetableRes, assignRes] = await Promise.all([
+          getGradesForStudent(studentId).catch(() => ({ data: [] })),
+          getMyAttendanceStats().catch(() => ({ data: { attendance_percentage: 0 } })),
+          sectionId ? getGroupTimetable(sectionId).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+          sectionId ? getAssignmentsByGroup(sectionId).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+        ]);
+
+        const grades = gradesRes.data || [];
+        const attendance = attRes.data || {};
+        const timetable = timetableRes.data || [];
+        const assignments = assignRes.data || [];
+
+        // 3. Process data
+        const avgScore = grades.length ? (grades.reduce((s, g) => s + (g.score ?? g.grade ?? 0), 0) / grades.length) : 0;
+        const gpa = ((avgScore / 100) * 4.0).toFixed(2);
+        
+        const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const todayName = DAYS[new Date().getDay()];
+        const todaySchedule = timetable
+            .filter(t => (t.day_of_week === todayName || t.day === todayName))
+            .sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''))
+            .map((t, idx) => ({
+                id: t.id || idx,
+                subject: t.subject_name || t.subject,
+                type: 'Lecture',
+                time: `${t.start_time?.slice(0, 5)} - ${t.end_time?.slice(0, 5)}`,
+                room: t.room || 'TBA',
+                teacher: t.teacher_name || t.teacher,
+                status: 'upcoming' // Simplifying for now
+            }));
+
+        const upcomingAssignments = assignments
+            .filter(a => new Date(a.due_date) >= new Date())
+            .map(a => ({
+                id: a.id,
+                title: a.title,
+                subject: a.subject_name || a.subject_id,
+                dueDate: a.due_date,
+                type: a.assignment_type || 'Task'
+            })).slice(0, 3); // top 3
+
+        const recentGrades = grades.slice(-3).map(g => ({
+            subject: g.subject_name || g.subject,
+            grade: g.score >= 90 ? 'A' : g.score >= 80 ? 'B' : g.score >= 70 ? 'C' : 'F',
+            points: g.score ?? g.grade ?? 0
+        }));
+
+        setData({
+          stats: {
+            gpa: isNaN(gpa) ? '0.00' : gpa,
+            attendance: attendance.attendance_percentage ?? 0,
+            credits: grades.length * 3, // rough estimate
+            upcomingDeadlines: upcomingAssignments.length
+          },
+          todaySchedule,
+          assignments: upcomingAssignments,
+          recentGrades
+        });
+      } catch (err) {
+        console.error(err);
+        setError('Failed to load dashboard data.');
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchMockData();
+
+    fetchDashboardData();
   }, []);
 
   if (loading || !data) {
     return (
-      <div className="page">
-        <div className="page-header">
-          <div>
-            <h1 className="page-title skeleton-title"></h1>
-            <p className="page-subtitle skeleton-text" style={{ width: '200px' }}></p>
-          </div>
-        </div>
-        <div className="grid grid-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="skeleton skeleton-card"></div>)}
-        </div>
-      </div>
+      <PageShell loading={true} skeletonCount={4}>
+         <div />
+      </PageShell>
     );
   }
 
   return (
-    <div className="page">
+    <PageShell loading={false} error={error}>
       {/* Header */}
       <div className="page-header">
         <div>
@@ -250,7 +293,7 @@ const StudentDashboard = () => {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

@@ -13,3 +13,8 @@ export const getLessonStats    = (lessonId)        => client.get(`/attendance/le
 export const getAttendanceByStudent = (studentId)  => client.get(`/attendance/student/${studentId}`);
 export const getStudentStats   = (studentId)       => client.get(`/attendance/student/${studentId}/stats`);
 export const getGroupStats     = (sectionId)       => client.get(`/attendance/group/${sectionId}/stats`);
+
+// ─── STUDENT ────────────────────────────────────────────
+
+// GET "/my/stats" — student kendi attendance statsını JWT token'dan çeker (user.sub kullanılır backend'de)
+export const getMyAttendanceStats  = ()            => client.get('/attendance/my/stats');

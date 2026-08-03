@@ -11,12 +11,13 @@ from app.academic.assignments.schemas import (
 )
 from app.academic.assignments.service import AssignmentService
 from app.core.database import get_db
-from app.core.dependencies import admin_required, teacher_required
+from app.core.dependencies import admin_or_student, admin_required, teacher_required
 
 router = APIRouter()
 
 AdminUser = Annotated[dict, Depends(admin_required)]
 TeacherUser = Annotated[dict, Depends(teacher_required)]
+AdminOrStudent = Annotated[dict, Depends(admin_or_student)]
 DbConnection = Annotated[Connection, Depends(get_db)]
 
 
@@ -44,9 +45,7 @@ async def create_assignment(
     summary="All assignments",
     description="Admin sees all assignments",
 )
-async def get_all_assignments(
-    current_user: AdminUser, conn: DbConnection
-):
+async def get_all_assignments(current_user: AdminUser, conn: DbConnection):
     service = AssignmentService(conn)
     return await service.get_all()
 
@@ -113,11 +112,11 @@ async def get_by_semester(
     "/group/{section_id}",
     response_model=list[AssignmentDetailResponse],
     summary="Get assignments by group",
-    description="Get all assignments for a specific group",
+    description="Get all assignments for a specific group — accessible by admin or student",
 )
 async def get_by_group(
     section_id: int,
-    current_user: AdminUser,
+    current_user: AdminOrStudent,
     conn: DbConnection,
 ):
     service = AssignmentService(conn)
@@ -133,9 +132,7 @@ async def get_by_group(
     summary="Get my assignments",
     description="Get all assignments for the current teacher",
 )
-async def get_my_assignments(
-    current_user: TeacherUser, conn: DbConnection
-):
+async def get_my_assignments(current_user: TeacherUser, conn: DbConnection):
     service = AssignmentService(conn)
     return await service.get_by_teacher(current_user["id"])
 
@@ -163,8 +160,6 @@ async def get_my_assignments_by_semester(
     summary="Get my schedule",
     description="Get all classes and time slots for the current teacher",
 )
-async def get_my_schedule(
-    current_user: TeacherUser, conn: DbConnection
-):
+async def get_my_schedule(current_user: TeacherUser, conn: DbConnection):
     service = AssignmentService(conn)
     return await service.get_teacher_schedule(current_user["id"])

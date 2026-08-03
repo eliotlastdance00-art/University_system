@@ -47,6 +47,7 @@ const Sidebar = () => {
       { title: 'My Timetable', path: '/student/timetable', icon: <Calendar size={20} /> },
       { title: 'My Grades', path: '/student/grades', icon: <FileText size={20} /> },
       { title: 'My Attendance', path: '/student/attendance', icon: <CheckCircle size={20} /> },
+      { title: 'Assignments', path: '/student/assignments', icon: <BookOpen size={20} /> },
     ];
   };
 
