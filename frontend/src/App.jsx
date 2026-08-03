@@ -7,7 +7,7 @@ import AppLayout from './components/Layout/AppLayout';
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
 import OtpPage from './pages/auth/OtpPage';
-
+import ProfilePage from './pages/admin/AdminProfilePage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UsersPage from './pages/admin/UsersPage';
 import FacultiesPage from './pages/admin/FacultiesPage';
@@ -72,7 +72,7 @@ const App = () => {
               </Route>
 
               {/* Shared Routes */}
-              <Route path="/profile" element={<div>Profile (Coming Soon)</div>} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/notifications" element={<div>Notifications (Coming Soon)</div>} />
             </Route>
           </Route>
