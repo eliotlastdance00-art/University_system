@@ -21,6 +21,12 @@ import StudentGradesPage from './pages/student/GradesPage';
 import StudentAttendancePage from './pages/student/AttendancePage';
 import StudentAssignmentsPage from './pages/student/AssignmentsPage';
 import { useAuth } from './contexts/AuthContext';
+import SubjectsPage  from './pages/admin/Subjectspage';
+import CohortsPage  from './pages/admin/CohortPage';
+import ProgramsPage  from './pages/admin/ProgramsPage';
+import AcademicYearsPage  from './pages/admin/AcademicYearsPage';
+import LessonsPage from './pages/admin/LessonsPage';  
+
 
 const RootRedirect = () => {
   const { user } = useAuth();
@@ -49,6 +55,11 @@ const App = () => {
                 <Route path="faculties" element={<FacultiesPage />} />
                 <Route path="departments" element={<DepartmentsPage />} />
                 <Route path="assignments" element={<AssignmentsPage />} />
+                <Route path="subjects" element={<SubjectsPage />} />
+                <Route path="cohorts" element={<CohortsPage />} />
+                <Route path="programs" element={<ProgramsPage />} />
+                <Route path="academic-years" element={<AcademicYearsPage />} />
+                <Route path="lessons" element={<LessonsPage />} />
               </Route>
 
               {/* Dean Routes */}

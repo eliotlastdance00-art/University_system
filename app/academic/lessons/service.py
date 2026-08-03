@@ -2,8 +2,8 @@ from datetime import date
 
 from app.academic.lessons.repository import LessonRepository
 from app.academic.lessons.schemas import LessonCancel
-from app.academic.timetable.repository import TimetableRepository
 from app.academic.timetable.exceptions import TimetableNotFoundError
+from app.academic.timetable.repository import TimetableRepository
 
 from .exceptions import (
     LessonAlreadyCancelledError,

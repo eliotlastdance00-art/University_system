@@ -124,3 +124,6 @@ class DepartmentService:
     async def get_department_students(self, department_id: int) -> list[dict]:
         await self._get_or_404(department_id)
         return await self.repo.get_department_students(department_id)
+
+    async def get_all_departments(self) -> list[dict]:
+        return await self.repo.get_all()

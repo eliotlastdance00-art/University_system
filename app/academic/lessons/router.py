@@ -22,7 +22,7 @@ Teacher = Annotated[dict, (teacher_required)]
 
 
 @router.get(
-    "",
+    "/",
     response_model=list[LessonResponse],
     summary="Ähli sapaklar",
 )

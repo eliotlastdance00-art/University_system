@@ -24,6 +24,24 @@ client.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// ─── Single-flight refresh state ───────────────────────────
+// Refresh token rotates on every use (backend deletes the old row).
+// If 3 requests 401 at once, each must NOT call /auth/refresh separately —
+// the first call wins, the token gets rotated, and the other 2 would send
+// an already-deleted (stale) refresh_token → RefreshTokenNotFoundError.
+// So: only ONE refresh call runs at a time; everyone else queues and
+// reuses its result.
+let isRefreshing = false;
+let waitQueue = []; // { resolve, reject } for requests waiting on the in-flight refresh
+
+function processQueue(error, newAccessToken = null) {
+  waitQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(newAccessToken);
+  });
+  waitQueue = [];
+}
+
 // Response interceptor — handle 401 with token refresh
 client.interceptors.response.use(
   (response) => response,
@@ -40,6 +58,21 @@ client.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
+      // A refresh is already in flight — queue this request instead of
+      // firing a second /auth/refresh call with the same (soon-to-be-stale) token.
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          waitQueue.push({ resolve, reject });
+        })
+          .then((newAccessToken) => {
+            originalRequest.headers['Authorization'] = newAccessToken;
+            return client(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      isRefreshing = true;
+
       try {
         const refreshToken = getRefreshToken();
         if (!refreshToken) {
@@ -53,12 +86,17 @@ client.interceptors.response.use(
         });
 
         saveTokens(data.access_token, data.refresh_token);
+        processQueue(null, data.access_token);
+
         originalRequest.headers['Authorization'] = data.access_token;
         return client(originalRequest);
       } catch (refreshError) {
+        processQueue(refreshError, null);
         clearTokens();
         window.location.href = '/login';
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 

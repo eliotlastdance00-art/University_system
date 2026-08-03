@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit3, Trash2, Search, RefreshCw, Database } from 'lucide-react';
+import { Plus, Edit3, Trash2, Search, RefreshCw, Database, ChevronDown } from 'lucide-react';
 
 // ────────────────────────────────────────────────────────────
 // Reusable Modal Shell (UsersPage.jsx'teki ile birebir aynı)
@@ -60,7 +60,13 @@ const GenericForm = ({ item, formFields, onSubmit, onCancel, loading }) => {
     if (!validate()) return;
     const payload = { ...form };
     formFields.forEach((f) => {
-      if (f.type === 'number' && payload[f.name] !== '') {
+      // Number coercion for plain number inputs AND numeric selects
+      // (e.g. a "Department" <select> whose option values are ids —
+      // <select> always yields a string via onChange, so without this
+      // department_id would be sent as "3" instead of 3).
+      const shouldCoerce =
+        f.type === 'number' || (f.type === 'select' && f.numeric);
+      if (shouldCoerce && payload[f.name] !== '') {
         payload[f.name] = Number(payload[f.name]);
       }
     });
@@ -149,6 +155,51 @@ const DeleteConfirm = ({ item, entityLabel, getItemLabel, onConfirm, onCancel, l
 );
 
 // ────────────────────────────────────────────────────────────
+// Deterministic hue from a string — same faculty name always
+// produces the same color, without hardcoding a palette per faculty.
+// ────────────────────────────────────────────────────────────
+const hashToHue = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash) % 360;
+};
+
+// ────────────────────────────────────────────────────────────
+// Row renderer — shared between flat table and grouped table
+// ────────────────────────────────────────────────────────────
+const ItemRow = ({ item, columns, updateItem, deleteItem, extraRowActions, entityLabel, setEditItem, setDeleteTarget }) => (
+  <tr>
+    {columns.map((col) => (
+      <td key={col.key} style={col.align === 'right' ? { textAlign: 'right' } : undefined}>
+        {col.render ? col.render(item) : item[col.key]}
+      </td>
+    ))}
+    {(updateItem || deleteItem || extraRowActions) && (
+      <td>
+        <div style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'flex-end' }}>
+          {extraRowActions && extraRowActions(item)}
+          {updateItem && (
+            <button className="btn btn-ghost btn-sm btn-icon" title={`Edit ${entityLabel}`}
+              onClick={() => setEditItem(item)}>
+              <Edit3 size={15} />
+            </button>
+          )}
+          {deleteItem && (
+            <button className="btn btn-ghost btn-sm btn-icon" title={`Delete ${entityLabel}`}
+              onClick={() => setDeleteTarget(item)}
+              style={{ color: 'var(--error)' }}>
+              <Trash2 size={15} />
+            </button>
+          )}
+        </div>
+      </td>
+    )}
+  </tr>
+);
+
+// ────────────────────────────────────────────────────────────
 // CrudPage — generic liste + create/edit/delete sayfası
 //
 // Props:
@@ -160,9 +211,17 @@ const DeleteConfirm = ({ item, entityLabel, getItemLabel, onConfirm, onCancel, l
 //   deleteItem(id)              — opsiyonel, verilmezse "Delete" butonu gizlenir
 //   columns: [{ key, label, render?(item) }]
 //   searchKeys: ['name', 'code']   — arama kutusunun bakacağı alanlar
-//   formFields: [{ name, label, type, required, options?, validate?, default? }]
+//   formFields: [{ name, label, type, required, options?, numeric?, validate?, default? }]
 //   getItemLabel(item)          — delete onayında ismi göstermek için
 //   extraRowActions?(item)      — edit/delete dışında ekstra buton(lar) döndüren fonksiyon
+//   groupBy?: {                 — OPTIONAL. Verilmezse davranış aynı (flat table).
+//     getKey(item),                — grup kimliği (fonksiyon — lookup gerekiyorsa kullanılabilir)
+//     getLabel(item),              — grup başlığı
+//     getColorKey?(item),          — verilirse renkli badge gösterilir, aynı değer = aynı renk
+//     subGroupBy?: {                — OPTIONAL 2. seviye (örn. Faculty > Department)
+//       getKey(item), getLabel(item),
+//     }
+//   }
 // ────────────────────────────────────────────────────────────
 const CrudPage = ({
   title,
@@ -177,12 +236,14 @@ const CrudPage = ({
   formFields = [],
   getItemLabel,
   extraRowActions,
+  groupBy,
 }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState('');
+  const [openGroups, setOpenGroups] = useState({});
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -254,6 +315,30 @@ const CrudPage = ({
       String(item[key] ?? '').toLowerCase().includes(searchText.toLowerCase())
     );
   });
+
+  // Groups a list of items by a { getKey, getLabel, getColorKey? } level config.
+  // Reused for both the top level (e.g. Faculty) and the optional subGroupBy
+  // level (e.g. Department) — same shape, one level deep each call.
+  const buildGroups = (list, level) => {
+    const map = new Map();
+    list.forEach((item) => {
+      const key = level.getKey(item);
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          label: level.getLabel(item),
+          colorKey: level.getColorKey ? level.getColorKey(item) : null,
+          items: [],
+        });
+      }
+      map.get(key).items.push(item);
+    });
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  };
+
+  const groups = groupBy ? buildGroups(filtered, groupBy) : null;
+
+  const rowActionsPresent = !!(updateItem || deleteItem || extraRowActions);
 
   if (loading) {
     return (
@@ -329,55 +414,7 @@ const CrudPage = ({
         </div>
       )}
 
-      {filtered.length > 0 ? (
-        <div className="table-container">
-          <table className="table">
-            <thead>
-              <tr>
-                {columns.map((col) => (
-                  <th key={col.key} style={col.align === 'right' ? { textAlign: 'right' } : undefined}>
-                    {col.label}
-                  </th>
-                ))}
-                {(updateItem || deleteItem || extraRowActions) && (
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item) => (
-                <tr key={item.id}>
-                  {columns.map((col) => (
-                    <td key={col.key} style={col.align === 'right' ? { textAlign: 'right' } : undefined}>
-                      {col.render ? col.render(item) : item[col.key]}
-                    </td>
-                  ))}
-                  {(updateItem || deleteItem || extraRowActions) && (
-                    <td>
-                      <div style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'flex-end' }}>
-                        {extraRowActions && extraRowActions(item)}
-                        {updateItem && (
-                          <button className="btn btn-ghost btn-sm btn-icon" title={`Edit ${entityLabel}`}
-                            onClick={() => setEditItem(item)}>
-                            <Edit3 size={15} />
-                          </button>
-                        )}
-                        {deleteItem && (
-                          <button className="btn btn-ghost btn-sm btn-icon" title={`Delete ${entityLabel}`}
-                            onClick={() => setDeleteTarget(item)}
-                            style={{ color: 'var(--error)' }}>
-                            <Trash2 size={15} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
+      {filtered.length === 0 ? (
         <div className="glass-card">
           <div className="empty-state">
             <Database className="empty-state-icon" size={40} />
@@ -390,6 +427,159 @@ const CrudPage = ({
                 : createItem ? `Click "Add ${entityLabel}" to create the first one.` : ''}
             </p>
           </div>
+        </div>
+      ) : groupBy ? (
+        // ─── Grouped (accordion) view — 1 or 2 levels ───────
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          {groups.map((group) => {
+            const isOpen = searchText ? true : !!openGroups[group.key];
+            const hue = group.colorKey ? hashToHue(String(group.colorKey)) : null;
+            const subGroups = groupBy.subGroupBy ? buildGroups(group.items, groupBy.subGroupBy) : null;
+
+            const renderTable = (rowItems) => (
+              <table className="table">
+                <thead>
+                  <tr>
+                    {columns.map((col) => (
+                      <th key={col.key} style={col.align === 'right' ? { textAlign: 'right' } : undefined}>
+                        {col.label}
+                      </th>
+                    ))}
+                    {rowActionsPresent && <th style={{ textAlign: 'right' }}>Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rowItems.map((item) => (
+                    <ItemRow
+                      key={item.id}
+                      item={item}
+                      columns={columns}
+                      updateItem={updateItem}
+                      deleteItem={deleteItem}
+                      extraRowActions={extraRowActions}
+                      entityLabel={entityLabel}
+                      setEditItem={setEditItem}
+                      setDeleteTarget={setDeleteTarget}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            );
+
+            return (
+              <div key={group.key} className="table-container">
+                <button
+                  onClick={() => setOpenGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                    width: '100%', padding: 'var(--space-4)', background: 'transparent',
+                    textAlign: 'left', color: 'var(--text-primary)',
+                  }}
+                >
+                  {group.colorKey && (
+                    <span
+                      className="badge"
+                      style={{
+                        background: `hsla(${hue}, 70%, 50%, 0.15)`,
+                        color: `hsl(${hue}, 70%, 65%)`,
+                      }}
+                    >
+                      {group.colorKey}
+                    </span>
+                  )}
+                  <span style={{ fontWeight: 600, fontSize: 'var(--font-md)' }}>{group.label}</span>
+                  <span className="text-muted" style={{ fontSize: 'var(--font-sm)' }}>
+                    {group.items.length} {entityLabel.toLowerCase()}{group.items.length !== 1 ? 's' : ''}
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    style={{
+                      marginLeft: 'auto', color: 'var(--text-muted)',
+                      transition: 'transform var(--transition-fast)',
+                      transform: isOpen ? 'rotate(180deg)' : 'none',
+                    }}
+                  />
+                </button>
+
+                {isOpen && (
+                  subGroups ? (
+                    <div style={{
+                      display: 'flex', flexDirection: 'column', gap: 'var(--space-2)',
+                      padding: '0 var(--space-4) var(--space-4)',
+                    }}>
+                      {subGroups.map((sub) => {
+                        const subKey = `${group.key}::${sub.key}`;
+                        const subOpen = searchText ? true : !!openGroups[subKey];
+                        return (
+                          <div key={subKey} style={{
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-md)',
+                            overflow: 'hidden',
+                          }}>
+                            <button
+                              onClick={() => setOpenGroups((prev) => ({ ...prev, [subKey]: !prev[subKey] }))}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                                width: '100%', padding: 'var(--space-3)', paddingLeft: 'var(--space-6)',
+                                background: 'var(--bg-glass)', textAlign: 'left', color: 'var(--text-primary)',
+                              }}
+                            >
+                              <span style={{ fontSize: 'var(--font-sm)', fontWeight: 500 }}>{sub.label}</span>
+                              <span className="text-muted" style={{ fontSize: 'var(--font-xs)' }}>
+                                {sub.items.length}
+                              </span>
+                              <ChevronDown
+                                size={14}
+                                style={{
+                                  marginLeft: 'auto', color: 'var(--text-muted)',
+                                  transition: 'transform var(--transition-fast)',
+                                  transform: subOpen ? 'rotate(180deg)' : 'none',
+                                }}
+                              />
+                            </button>
+                            {subOpen && renderTable(sub.items)}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    renderTable(group.items)
+                  )
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        // ─── Flat table view (original behavior) ────────────
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                {columns.map((col) => (
+                  <th key={col.key} style={col.align === 'right' ? { textAlign: 'right' } : undefined}>
+                    {col.label}
+                  </th>
+                ))}
+                {rowActionsPresent && <th style={{ textAlign: 'right' }}>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((item) => (
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  columns={columns}
+                  updateItem={updateItem}
+                  deleteItem={deleteItem}
+                  extraRowActions={extraRowActions}
+                  entityLabel={entityLabel}
+                  setEditItem={setEditItem}
+                  setDeleteTarget={setDeleteTarget}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

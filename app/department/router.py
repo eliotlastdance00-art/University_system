@@ -72,3 +72,9 @@ async def get_department_teacher(id: int, current_user: AdminUser, conn: DbConne
 async def get_department_students(id: int, current_user: AdminUser, conn: DbConnection):
     service = DepartmentService(conn)
     return await service.get_department_students(id)
+
+
+@router.get("/", response_model=list[DepartmentResponse])
+async def get_all_departments(current_user: AdminUser, conn: DbConnection):
+    service = DepartmentService(conn)
+    return await service.get_all_departments()
