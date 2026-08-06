@@ -15,6 +15,11 @@ import DepartmentsPage from './pages/admin/DepartmentsPage';
 import AssignmentsPage from './pages/admin/AssignmentsPage';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import TeacherAssignmentsPage from './pages/teacher/TeacherAssignmentsPage';
+import TeacherSchedulePage from './pages/teacher/TeacherSchedulePage';
+import TeacherLessonsPage from './pages/teacher/TeacherLessonsPage';
+import TeacherAttendancePage from './pages/teacher/TeacherAttendancePage';
+import TeacherGradesPage from './pages/teacher/TeacherGradesPage';
+import TeacherProfilePage from './pages/teacher/TeacherProfilePage';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentTimetablePage from './pages/student/TimetablePage';
 import StudentGradesPage from './pages/student/GradesPage';
@@ -25,13 +30,20 @@ import SubjectsPage  from './pages/admin/Subjectspage';
 import CohortsPage  from './pages/admin/CohortPage';
 import ProgramsPage  from './pages/admin/ProgramsPage';
 import AcademicYearsPage  from './pages/admin/AcademicYearsPage';
-import LessonsPage from './pages/admin/LessonsPage';  
+import LessonsPage from './pages/admin/LessonsPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 
 const RootRedirect = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   return <Navigate to={`/${user.role}/dashboard`} replace />;
+};
+
+const DynamicProfilePage = () => {
+  const { user } = useAuth();
+  if (user?.role === 'teacher') return <TeacherProfilePage />;
+  return <ProfilePage />; // AdminProfilePage
 };
 
 const App = () => {
@@ -71,6 +83,10 @@ const App = () => {
               <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']} />}>
                 <Route path="dashboard" element={<TeacherDashboard />} />
                 <Route path="assignments" element={<TeacherAssignmentsPage />} />
+                <Route path="schedule" element={<TeacherSchedulePage />} />
+                <Route path="lessons" element={<TeacherLessonsPage />} />
+                <Route path="attendance" element={<TeacherAttendancePage />} />
+                <Route path="grades" element={<TeacherGradesPage />} />
               </Route>
 
               {/* Student Routes */}
@@ -83,8 +99,8 @@ const App = () => {
               </Route>
 
               {/* Shared Routes */}
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/notifications" element={<div>Notifications (Coming Soon)</div>} />
+              <Route path="/profile" element={<DynamicProfilePage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
           </Route>
 
