@@ -3,12 +3,13 @@ Structured JSON logging for the University System.
 
 Produces one JSON object per log line, compatible with
 Grafana Loki / Promtail ingestion.  Fields:
-  timestamp, level, service, logger, message,
+  timestamp, level, service, domain, logger, message,
   request_id (when available), extra context.
 
 Usage:
-    from app.core.logger import logger
-    logger.info("grade created", extra={"grade_id": 42})
+    from app.core.logger import get_domain_logger
+    logger = get_domain_logger("auth")
+    logger.info("user logged in", extra={"user_id": 42})
 """
 
 import json
@@ -28,12 +29,13 @@ class StructuredJsonFormatter(logging.Formatter):
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "service": SERVICE_NAME,
+            "domain": getattr(record, "domain", "global"),
             "logger": record.name,
             "message": record.getMessage(),
         }
 
         # Request-scoped fields injected via LoggerAdapter.extra
-        for key in ("request_id", "user_id", "method", "path"):
+        for key in ("request_id", "user_id", "method", "path", "ip_address"):
             val = getattr(record, key, None)
             if val is not None:
                 log[key] = val
@@ -50,13 +52,13 @@ class StructuredJsonFormatter(logging.Formatter):
         return json.dumps(log, default=str)
 
 
-def _build_logger() -> logging.Logger:
-    """Create and configure the application-wide logger."""
-    log = logging.getLogger("app")
+def _build_base_logger(name: str) -> logging.Logger:
+    """Create and configure a base logger."""
+    log = logging.getLogger(name)
     log.setLevel(logging.DEBUG)
     log.propagate = False
 
-    # Remove any pre-existing handlers (e.g. from reloads)
+    # Remove any pre-existing handlers
     for h in log.handlers[:]:
         log.removeHandler(h)
 
@@ -66,7 +68,31 @@ def _build_logger() -> logging.Logger:
     return log
 
 
-logger = _build_logger()
+class DomainLogger(logging.LoggerAdapter):
+    """
+    Adapter that injects domain-scoped context into every log call.
+    """
+    def __init__(self, base_logger, domain: str, **kwargs):
+        kwargs["domain"] = domain
+        super().__init__(base_logger, kwargs)
+
+    def process(self, msg, kwargs):
+        extra = kwargs.get("extra", {})
+        extra.update(self.extra)
+        kwargs["extra"] = extra
+        return msg, kwargs
+
+
+def get_domain_logger(domain: str) -> DomainLogger:
+    """
+    Factory function to get a logger for a specific domain.
+    """
+    base_logger = _build_base_logger(f"app.{domain}")
+    return DomainLogger(base_logger, domain=domain)
+
+
+# For backward compatibility or global usage
+logger = _build_base_logger("app")
 
 
 class RequestLogger(logging.LoggerAdapter):
@@ -82,7 +108,6 @@ class RequestLogger(logging.LoggerAdapter):
         super().__init__(base_logger, kwargs)
 
     def process(self, msg, kwargs):
-        # Merge our extras into the LogRecord
         extra = kwargs.get("extra", {})
         extra.update(self.extra)
         kwargs["extra"] = extra

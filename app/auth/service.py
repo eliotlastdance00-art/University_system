@@ -1,5 +1,4 @@
 import hmac
-import logging
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
@@ -9,6 +8,7 @@ from app.auth.email.service import send_otp_email
 from app.auth.schemas import SaveRefreshToken, SendOtpRequest, VerifyOtpRequest
 from app.core.config import settings
 from app.core.exceptions import AppError
+from app.core.logger import get_domain_logger
 from app.core.security import (
     create_otp,
     create_otp_token,
@@ -36,7 +36,7 @@ from .exceptions import (
 from .repository import AuthRepository
 from .schemas import LoginRequest, TokenResponse
 
-logger = logging.getLogger(__name__)
+logger = get_domain_logger("auth")
 
 # Shared cookie attributes — MUST stay identical between set_cookie and
 # delete_cookie, or the browser won't match the cookie to clear it.
@@ -73,7 +73,11 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
-            logger.error(f"LOGIN ERROR: {e!s}")
+            logger.error(
+                "User login failed due to an unexpected error",
+                extra={"error_detail": str(e), "email": data.email},
+                exc_info=True,
+            )
             raise AppError(f"Login Error: {e!s}") from e
 
     async def send_otp(self, request: SendOtpRequest, response: Response):
@@ -96,7 +100,11 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
-            logger.exception("Send OTP Error occurred")
+            logger.error(
+                "Failed to generate or send OTP email",
+                extra={"email": request.email, "error_detail": str(e)},
+                exc_info=True,
+            )
             raise AppError(f"Failed to send OTP email. Internal Error: {e!s}") from e
 
     async def verify_otp(
@@ -169,7 +177,11 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
-            logger.exception("Verify OTP Error occurred")
+            logger.error(
+                "OTP verification failed due to an unexpected error",
+                extra={"email": request.email, "error_detail": str(e)},
+                exc_info=True,
+            )
             raise AppError("An unexpected error occurred during verification") from e
 
     async def refresh_token(self, refresh_token: str) -> TokenResponse:
@@ -232,7 +244,11 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
-            logger.exception("Refresh Token Error occurred")
+            logger.error(
+                "Token rotation failed during refresh attempt",
+                extra={"error_detail": str(e)},
+                exc_info=True,
+            )
             raise AppError("An unexpected error occurred during token refresh") from e
 
     async def logout(self, refresh_token: str):
@@ -243,5 +259,9 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
-            logger.exception("Logout Error occurred")
+            logger.error(
+                "User logout failed",
+                extra={"error_detail": str(e)},
+                exc_info=True,
+            )
             raise AppError("An error occurred during logout") from e
