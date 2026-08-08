@@ -59,7 +59,7 @@ async def broadcast_notification(
     """
     service = _build_service(conn)
     sent_count = await service.broadcast(
-        sender_id=current_user["id"],
+        sender_id=current_user["sub"],
         title=data.title,
         body=data.body,
         target_role=data.target_role,

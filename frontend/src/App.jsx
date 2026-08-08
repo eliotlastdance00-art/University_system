@@ -46,10 +46,13 @@ const DynamicProfilePage = () => {
   return <ProfilePage />; // AdminProfilePage
 };
 
+import NotificationHandler from './components/NotificationHandler';
+
 const App = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <NotificationHandler />
         <Routes>
           {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />

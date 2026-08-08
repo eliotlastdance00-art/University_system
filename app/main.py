@@ -35,6 +35,7 @@ from app.core.middleware import RequestContextMiddleware
 from app.dashboard.router import router as dashboard_router
 from app.department.router import router as department_router
 from app.faculty.router import router as faculty_router
+from app.notifications.infrastructure.fcm_client import init_firebase
 from app.notifications.router import router as notification_router
 from app.profile.router import router as profile_router
 from app.users.router import router as user_router
@@ -44,11 +45,10 @@ from app.users.router import router as user_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("starting_up", extra={"context": {"version": settings.APP_VERSION}})
+    init_firebase(settings.FIREBASE_CREDENTIALS_PATH)
     await pool_create()
     yield
     await close_pool()
-    logger.info("shutdown_complete")
 
 
 # ─── App ────────────────────────────────────────────────────
