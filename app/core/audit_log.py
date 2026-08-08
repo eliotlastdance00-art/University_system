@@ -34,7 +34,7 @@ class AuditLogger:
         actor_id: int | None,
         action: AuditAction,
         entity_name: str,
-        entity_id: int | None,
+        entity_id: int | None=None,
         old_value: dict[str, Any] | None = None,
         new_value: dict[str, Any] | None = None,
     ) -> None:

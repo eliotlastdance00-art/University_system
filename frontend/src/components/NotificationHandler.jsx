@@ -1,45 +1,64 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { requestForToken, onMessageListener } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-// import axios from 'axios'; // Import your API client
+import { registerDeviceToken } from '../api/notifications';
 
 const NotificationHandler = () => {
-  const [notification, setNotification] = useState({ title: '', body: '' });
   const { user } = useAuth();
+  const listenerActive = useRef(false);
 
+  // ─── FCM Token kaydet (login sonrası) ───────────────────────
   useEffect(() => {
-    if (user) {
-      requestForToken().then((token) => {
-        if (token) {
-          // TODO: Send this token to your backend
-          // axios.post('/api/v1/profile/fcm-token', { token });
-          console.log("Token generated:", token);
+    if (!user) return;
+
+    const registerToken = async () => {
+      const token = await requestForToken();
+      if (token) {
+        try {
+          await registerDeviceToken({ token, device_type: 'web' });
+          console.log('FCM token backend-e ugradyldy.');
+        } catch (err) {
+          console.error('FCM token ugradylmady:', err);
         }
-      });
-    }
-  }, [user]);
-
-  useEffect(() => {
-    const listenForMessages = async () => {
-      try {
-        const payload = await onMessageListener();
-        console.log('Foreground notification received:', payload);
-        setNotification({
-          title: payload.notification.title,
-          body: payload.notification.body
-        });
-        
-        // Show an alert or toast here
-        alert(`New Notification: ${payload.notification.title} - ${payload.notification.body}`);
-      } catch (err) {
-        console.log('Failed to listen for messages:', err);
       }
     };
 
-    listenForMessages();
+    registerToken();
+  }, [user?.id]); // user.id üýtgände täzeden register et
+
+  // ─── Foreground habarlaşma diňleýji (infinite loop) ─────────
+  useEffect(() => {
+    if (listenerActive.current) return;
+    listenerActive.current = true;
+
+    const listenLoop = async () => {
+      while (listenerActive.current) {
+        try {
+          const payload = await onMessageListener();
+          const title = payload?.notification?.title || 'Täze habar';
+          const body = payload?.notification?.body || '';
+
+          // Browser Notification API arkaly görkez
+          if (Notification.permission === 'granted') {
+            new Notification(title, { body, icon: '/vite.svg' });
+          } else {
+            console.log(`Bildiriş: [${title}] ${body}`);
+          }
+        } catch (err) {
+          console.error('Foreground listener ýalňyşlyk:', err);
+          break;
+        }
+      }
+    };
+
+    listenLoop();
+
+    return () => {
+      listenerActive.current = false;
+    };
   }, []);
 
-  return null; // This is a background logic component
+  return null;
 };
 
 export default NotificationHandler;

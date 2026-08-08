@@ -6,12 +6,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-com
 // Note: You must replace these placeholder values with your actual Firebase config values
 // or dynamically load them (since process.env isn't easily available in a service worker without a bundler)
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAP0XhYjBhMwNitMcPFX8js8aMsR71YdGQ",
+  authDomain: "university-system-8d549.firebaseapp.com",
+  projectId: "university-system-8d549",
+  storageBucket: "university-system-8d549.firebasestorage.app",
+  messagingSenderId: "1065938492216",
+  appId: "1:1065938492216:web:3b9e45c6f78119cd6b3fcd",
+  
 };
 
 firebase.initializeApp(firebaseConfig);

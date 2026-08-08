@@ -44,12 +44,16 @@ async def send_otp_email(to_email: str, otp: str) -> None:
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
 
+    use_tls = settings.SMTP_PORT == 465
+    start_tls = settings.SMTP_PORT == 587
+
     await aiosmtplib.send(
         message,
         hostname=settings.SMTP_HOST,
         port=settings.SMTP_PORT,
         username=settings.SMTP_USER,
         password=settings.SMTP_PASS,
-        start_tls=True,
+        use_tls=use_tls,
+        start_tls=start_tls,
         tls_context=context,
     )

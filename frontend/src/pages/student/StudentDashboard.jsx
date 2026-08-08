@@ -26,6 +26,7 @@ import { getMyAttendanceStats } from '../../api/attendance';
 import { getGroupTimetable } from '../../api/timetables';
 import { getAssignmentsByGroup } from '../../api/assignments';
 import PageShell from '../../components/PageShell';
+import NotificationSidebar from '../../components/NotificationSidebar';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -264,33 +265,8 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          {/* Recent Grades */}
-          <div className="glass-card">
-            <div className="flex-between" style={{ marginBottom: 'var(--space-4)' }}>
-              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Star size={18} className="text-secondary" />
-                Recent Grades
-              </h3>
-              <button className="btn btn-ghost btn-sm btn-icon" title="View All"><ChevronRight size={16} /></button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {data.recentGrades.map((grade, idx) => (
-                <div key={idx} className="flex-between" style={{ 
-                  padding: 'var(--space-3)', 
-                  background: 'var(--bg-input)', 
-                  borderRadius: 'var(--radius-md)'
-                }}>
-                  <span style={{ fontSize: '14px', fontWeight: 500 }}>{grade.subject}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{grade.points}/100</span>
-                    <span className="badge" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', fontWeight: 'bold' }}>
-                      {grade.grade}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Notification Sidebar */}
+          <NotificationSidebar canBroadcast={false} limit={6} />
         </div>
       </div>
     </PageShell>
