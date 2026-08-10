@@ -14,7 +14,7 @@
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![JWT](https://img.shields.io/badge/Auth-JWT%20%2B%20OTP-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](#-auth-flow)
 
-[![License](https://img.shields.io/badge/License-Unlicensed-lightgrey?style=flat-square)](#-license)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE) 
 [![Status](https://img.shields.io/badge/status-active%20development-yellow?style=flat-square)]()
 [![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](./CONTRIBUTING.md)
 
@@ -190,6 +190,3 @@ sequenceDiagram
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the module convention every domain follows and how to add a new one.
 
-## 📄 License
-
-Add a `LICENSE` file before making this repository public if you intend others to reuse the code — none is currently present.

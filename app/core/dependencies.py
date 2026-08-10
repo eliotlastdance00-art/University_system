@@ -18,9 +18,29 @@ async def get_current_user(
     raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
-# ─── Role Guards ────────────────────────────────────────────
+# ─── Identity helpers ────────────────────────────────────────
 
 CurrentUser = Annotated[dict, Depends(get_current_user)]
+
+
+def get_user_id(current_user: dict) -> int:
+    """Return the authenticated user's integer ID from the JWT payload.
+
+    The access-token stores ``user_id`` as a string in the ``sub`` claim
+    (per the JWT spec).  All routers / services must call this helper
+    instead of writing ``int(current_user["sub"])`` inline, so that any
+    future change to the claim name or type is fixed in a single place.
+
+    Raises:
+        ValueError: if ``sub`` is missing or cannot be coerced to ``int``.
+    """
+    try:
+        return int(current_user["sub"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Cannot extract user ID from token payload: {exc}"
+        ) from exc
+
 
 
 async def admin_required(current_user: CurrentUser):

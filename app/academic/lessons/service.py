@@ -1,6 +1,7 @@
 from datetime import date
 
 from app.academic.lessons.repository import LessonRepository
+from app.core.dependencies import get_user_id
 from app.academic.lessons.schemas import LessonCancel
 from app.academic.timetable.exceptions import TimetableNotFoundError
 from app.academic.timetable.repository import TimetableRepository
@@ -42,7 +43,11 @@ class LessonService:
             raise TimetableNotFoundError()
 
         # 2. Mugallymyňmy?
+<<<<<<< HEAD
+        if timetable["teacher_id"] != get_user_id(current_user):
+=======
         if timetable["teacher_id"] != current_user["id"]:
+>>>>>>> main
             raise NotLessonTeacherError()
 
         # 3. Duplicate barmy?
@@ -60,7 +65,11 @@ class LessonService:
         lesson = await self._get_or_404(id)
 
         # 2. Mugallymyňmy?
+<<<<<<< HEAD
+        await self._check_owner(id, get_user_id(current_user))
+=======
         await self._check_owner(id, current_user["id"])
+>>>>>>> main
 
         # 3. Eýýäm ýatyrylanmy?
         if lesson["status"] == "cancelled":
@@ -95,7 +104,11 @@ class LessonService:
     # ─── GET MY HISTORY (Teacher) ────────────────────────────
 
     async def get_my_history(self, current_user: dict) -> list[dict]:
+<<<<<<< HEAD
+        result = await self.repo.get_my_history(get_user_id(current_user))
+=======
         result = await self.repo.get_my_history(current_user["id"])
+>>>>>>> main
         if not result:
             raise LessonNotFoundError("No lesson history found for this teacher.")
         return result
@@ -103,4 +116,8 @@ class LessonService:
     # ─── GET MY STATS (Teacher) ──────────────────────────────
 
     async def get_my_stats(self, current_user: dict) -> dict:
+<<<<<<< HEAD
+        return await self.repo.get_my_stats(get_user_id(current_user))
+=======
         return await self.repo.get_my_stats(current_user["id"])
+>>>>>>> main

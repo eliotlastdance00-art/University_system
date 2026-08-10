@@ -17,11 +17,11 @@ class GradeService:
         try:
             # Transaction is managed by get_db dependency. We execute both queries.
             # If one fails, the Exception is propagated, caught by get_db, and rollback is performed.
-            grade_id = await self.grade_repo.create(data, current_user["sub"])
+            grade_id = await self.grade_repo.create(data, get_user_id(current_user))
             new_grade = await self.grade_repo.get_by_id(grade_id)
 
             await self.audit_repo.log_action(
-                actor_id=int(current_user["sub"]),
+                actor_id=get_user_id(current_user),
                 action="CREATE",
                 entity_name="grades",
                 entity_id=grade_id,
@@ -34,7 +34,7 @@ class GradeService:
                 extra={
                     "extra_context": {
                         "grade_id": grade_id,
-                        "actor_id": current_user["sub"],
+                        "actor_id": get_user_id(current_user),
                     }
                 },
             )
@@ -63,7 +63,7 @@ class GradeService:
                 new_grade = await self.grade_repo.get_by_id(grade_id)
 
                 await self.audit_repo.log_action(
-                    actor_id=int(current_user["sub"]),
+                    actor_id=get_user_id(current_user),
                     action="UPDATE",
                     entity_name="grades",
                     entity_id=grade_id,
@@ -76,7 +76,7 @@ class GradeService:
                     extra={
                         "extra_context": {
                             "grade_id": grade_id,
-                            "actor_id": current_user["sub"],
+                            "actor_id": get_user_id(current_user),
                         }
                     },
                 )
@@ -97,7 +97,7 @@ class GradeService:
             await self.grade_repo.delete(grade_id)
 
             await self.audit_repo.log_action(
-                actor_id=int(current_user["sub"]),
+                actor_id=get_user_id(current_user),
                 action="DELETE",
                 entity_name="grades",
                 entity_id=grade_id,
@@ -110,7 +110,7 @@ class GradeService:
                 extra={
                     "extra_context": {
                         "grade_id": grade_id,
-                        "actor_id": current_user["sub"],
+                        "actor_id": get_user_id(current_user),
                     }
                 },
             )

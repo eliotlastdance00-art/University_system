@@ -28,7 +28,7 @@ async def update_profile(
 
 @router.get("/me")
 async def get_profile(current_user: CurrentUser, conn: DbConnection):
-    user_id = current_user["sub"]
+    user_id = get_user_id(current_user)
     service = ProfileService(conn)
     return await service.get_profile_me(user_id)
 
@@ -39,6 +39,6 @@ async def update_password(
     current_user: CurrentUser,
     conn: DbConnection,
 ):
-    user_id = current_user["sub"]
+    user_id = get_user_id(current_user)
     service = ProfileService(conn)
     return await service.update_password_me(user_id, data.new_password)

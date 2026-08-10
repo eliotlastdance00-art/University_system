@@ -16,6 +16,7 @@ from app.core.dependencies import (
     admin_or_teacher,
     admin_required,
     get_current_user,
+    get_user_id,
 )
 
 router = APIRouter()
@@ -135,7 +136,11 @@ async def get_my_stats(
     conn: DbConnection,
 ):
     service = AttendanceService(conn)
+<<<<<<< HEAD
+    return await service.get_student_stats(get_user_id(current_user))
+=======
     return await service.get_student_stats(current_user["sub"])
+>>>>>>> main
 
 
 @router.get(
