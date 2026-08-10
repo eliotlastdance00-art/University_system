@@ -70,6 +70,7 @@ const TeacherDashboard = () => {
           <button className="btn btn-primary">
             <FileText size={16} /> Syllabus
           </button>
+          
         </div>
       </div>
 
