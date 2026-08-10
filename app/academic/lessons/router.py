@@ -17,7 +17,7 @@ router = APIRouter()
 
 AdminUser = Annotated[dict, Depends(admin_required)]
 DbConnection = Annotated[Connection, Depends(get_db)]
-Teacher = Annotated[dict, Depends(teacher_required)]
+Teacher = Annotated[dict, (teacher_required)]
 # ─── ADMIN ──────────────────────────────────────────────────
 
 

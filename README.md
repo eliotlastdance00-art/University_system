@@ -192,4 +192,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the module convention every domain 
 
 ## 📄 License
 
-A[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
+Add a `LICENSE` file before making this repository public if you intend others to reuse the code — none is currently present.
