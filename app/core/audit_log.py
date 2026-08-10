@@ -56,3 +56,4 @@ class AuditLogger:
                     datetime.now(UTC),
                 ),
             )
+        await self.conn.commit()

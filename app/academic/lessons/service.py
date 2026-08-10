@@ -42,7 +42,7 @@ class LessonService:
             raise TimetableNotFoundError()
 
         # 2. Mugallymyňmy?
-        if timetable["teacher_id"] != current_user["id"]:
+        if timetable["teacher_id"] != int(current_user["sub"]):
             raise NotLessonTeacherError()
 
         # 3. Duplicate barmy?
@@ -60,7 +60,7 @@ class LessonService:
         lesson = await self._get_or_404(id)
 
         # 2. Mugallymyňmy?
-        await self._check_owner(id, current_user["id"])
+        await self._check_owner(id, int(current_user["sub"]))
 
         # 3. Eýýäm ýatyrylanmy?
         if lesson["status"] == "cancelled":
@@ -95,7 +95,7 @@ class LessonService:
     # ─── GET MY HISTORY (Teacher) ────────────────────────────
 
     async def get_my_history(self, current_user: dict) -> list[dict]:
-        result = await self.repo.get_my_history(current_user["id"])
+        result = await self.repo.get_my_history(int(current_user["sub"]))
         if not result:
             raise LessonNotFoundError("No lesson history found for this teacher.")
         return result
@@ -103,4 +103,4 @@ class LessonService:
     # ─── GET MY STATS (Teacher) ──────────────────────────────
 
     async def get_my_stats(self, current_user: dict) -> dict:
-        return await self.repo.get_my_stats(current_user["id"])
+        return await self.repo.get_my_stats(int(current_user["sub"]))

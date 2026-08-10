@@ -2,4 +2,4 @@ __pycache__/
 *.pyc
 .env
 venv/
-app/notification/firebase_service_account.json
+app/notifications/firebase_service_account.json
