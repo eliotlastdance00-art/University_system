@@ -42,8 +42,9 @@ async def register_device_token(
     conn: DbConnection,
 ) -> None:
     service = _build_service(conn)
+    # JWT payload stores user_id in "sub" as str — convert to int
     await service.register_device_token(
-        current_user["id"], data.token, data.device_type
+        int(current_user["sub"]), data.token, data.device_type
     )
 
 
@@ -58,8 +59,10 @@ async def broadcast_notification(
     şeýdip iberiji özüni başga birine öýnedip bilmez.
     """
     service = _build_service(conn)
+    # current_user["sub"] is stored as str(user_id) in the JWT.
+    # Convert to int to match the DB column type and other endpoints that use current_user["id"].
     sent_count = await service.broadcast(
-        sender_id=current_user["id"],
+        sender_id=int(current_user["sub"]),
         title=data.title,
         body=data.body,
         target_role=data.target_role,
@@ -75,7 +78,7 @@ async def get_my_notifications(
     offset: int = 0,
 ) -> list[NotificationOut]:
     service = _build_service(conn)
-    return await service.get_notifications_for_user(current_user["id"], limit, offset)
+    return await service.get_notifications_for_user(int(current_user["sub"]), limit, offset)
 
 
 @router.patch("/{notification_id}/read")
@@ -85,4 +88,4 @@ async def mark_notification_read(
     conn: DbConnection,
 ) -> None:
     service = _build_service(conn)
-    await service.mark_as_read(notification_id, current_user["id"])
+    await service.mark_as_read(notification_id, int(current_user["sub"]))

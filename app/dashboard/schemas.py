@@ -34,7 +34,7 @@ class AuditLogMinimal(BaseModel):
     id: int
     action: str
     entity_name: str
-    entity_id: int
+    entity_id: int | None = None
     timestamp: datetime
     actor_name: str | None = None
 

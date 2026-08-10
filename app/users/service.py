@@ -1,5 +1,6 @@
 from app.academic.sections.exceptions import SectionNotFoundError
 from app.core.audit_log import AuditAction, AuditLogger
+from app.core.logger import get_domain_logger
 
 from .exceptions import (
     RoleAlreadyAssignedError,
@@ -13,6 +14,8 @@ from .exceptions import (
 )
 from .repository import UsersRepository
 from .schemas import UserCreate, UserResponse, UserSearchFilters, UserUpdate
+
+logger = get_domain_logger("users")
 
 # password_hash ýaly meýdanlary audit-e ýazmazlyk üçin
 SENSITIVE_FIELDS = {"password", "password_hash"}
@@ -60,6 +63,11 @@ class UserService:
             entity_id=created_user["id"],
             old_value=None,
             new_value=_strip_sensitive(created_user),
+        )
+
+        logger.info(
+            "New user account successfully created",
+            extra={"email": data.email, "new_user_id": created_user["id"]},
         )
 
         return UserResponse(**created_user)
@@ -118,6 +126,15 @@ class UserService:
                 new_value=None,
             )
 
+        logger.info(
+            "User details updated successfully",
+            extra={
+                "updated_user_id": id,
+                "actor_id": actor_id,
+                "password_changed": data.password is not None,
+            },
+        )
+
         return {"message": "Changed user ✅"}
 
     async def delete_user(self, id: int, actor_id: int | None = None) -> dict:
@@ -131,6 +148,11 @@ class UserService:
             entity_id=id,
             old_value=_strip_sensitive(user),
             new_value=None,  # pozulany üçin täze ýagdaý ýok
+        )
+
+        logger.info(
+            "User account permanently deleted",
+            extra={"deleted_user_id": id, "actor_id": actor_id},
         )
 
         return {"message": "Delete user ✅"}
@@ -171,6 +193,17 @@ class UserService:
             },
         )
 
+        logger.info(
+            "Role successfully assigned to user",
+            extra={
+                "target_user_id": user_id,
+                "role_id": role_id,
+                "faculty_id": faculty_id,
+                "department_id": department_id,
+                "actor_id": actor_id,
+            },
+        )
+
         return {"message": "Successfully given role"}
 
     async def show_roles(self, user_id: int) -> list:
@@ -195,6 +228,15 @@ class UserService:
             entity_id=user_id,
             old_value={"role_id": role_id},
             new_value=None,
+        )
+
+        logger.info(
+            "Role successfully removed from user",
+            extra={
+                "target_user_id": user_id,
+                "revoked_role_id": role_id,
+                "actor_id": actor_id,
+            },
         )
 
         return {"message": "Role successfully removed"}
@@ -243,6 +285,15 @@ class UserService:
             entity_id=user_id,
             old_value={"section_id": old_section_id},
             new_value={"section_id": section_id},
+        )
+
+        logger.info(
+            "Student successfully assigned to section",
+            extra={
+                "student_user_id": user_id,
+                "section_id": section_id,
+                "old_section_id": old_section_id,
+            },
         )
 
         return {"success": "Student assigned to section successfully"}

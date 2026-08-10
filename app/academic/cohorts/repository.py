@@ -8,7 +8,7 @@ class CohortRepository:
         self.conn = conn
 
     async def create(self, data: ChCreate):
-        async with self.conn(DictCursor) as cur:
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
                 INSERT INTO cohorts
@@ -20,7 +20,7 @@ class CohortRepository:
         await self.conn.commit()
 
     async def get_all(self) -> list[dict]:
-        async with self.conn(DictCursor) as cur:
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute("""
                                 SELECT * FROM cohorts
                             """)
@@ -28,7 +28,7 @@ class CohortRepository:
         return result
 
     async def get_by_id(self, id: int) -> dict | None:
-        async with self.conn(DictCursor) as cur:
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
                                 SELECT * FROM cohorts WHERE id=%s
@@ -39,7 +39,7 @@ class CohortRepository:
         return result
 
     async def update(self, id: int, data: ChUpdate):
-        async with self.conn(DictCursor) as cur:
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
                 UPDATE cohorts
@@ -51,7 +51,7 @@ class CohortRepository:
         await self.conn.commit()
 
     async def delete(self, id: int):
-        async with self.conn(DictCursor) as cur:
+        async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
                 DELETE FROM cohorts

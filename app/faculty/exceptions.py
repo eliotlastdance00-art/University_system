@@ -2,10 +2,10 @@
 Faculty domain exceptions.
 
 Hierarchy:
-  AppError
-  ├── NotFoundError  →  FacultyNotFoundError
-  ├── ConflictError  →  FacultyAlreadyExistsError
-  └── ValidationError → FacultyCreateError
+    AppError
+    ├── NotFoundError  →  FacultyNotFoundError
+    ├── ConflictError  →  FacultyAlreadyExistsError
+    └── ValidationError → FacultyCreateError
 """
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError

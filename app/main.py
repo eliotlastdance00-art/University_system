@@ -32,23 +32,23 @@ from app.core.database import close_pool, pool_create
 from app.core.exceptions import AppError
 from app.core.logger import logger
 from app.core.middleware import RequestContextMiddleware
+from app.dashboard.router import router as dashboard_router
 from app.department.router import router as department_router
 from app.faculty.router import router as faculty_router
+from app.notifications.infrastructure.fcm_client import init_firebase
 from app.notifications.router import router as notification_router
 from app.profile.router import router as profile_router
 from app.users.router import router as user_router
-from app.dashboard.router import router as dashboard_router
 
 # ─── Lifespan ───────────────────────────────────────────────
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("starting_up", extra={"context": {"version": settings.APP_VERSION}})
+    init_firebase(settings.FIREBASE_CREDENTIALS_PATH)
     await pool_create()
     yield
     await close_pool()
-    logger.info("shutdown_complete")
 
 
 # ─── App ────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ app.add_middleware(RequestContextMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS.split(","),
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -134,9 +134,7 @@ app.include_router(profile_router, prefix=f"{PREFIX}/profile", tags=["Profile"])
 app.include_router(
     notification_router, prefix=f"{PREFIX}/notification", tags=["Notification"]
 )
-app.include_router(
-    dashboard_router, prefix=f"{PREFIX}/dashboard", tags=["Dashboard"]
-)
+app.include_router(dashboard_router, prefix=f"{PREFIX}/dashboard", tags=["Dashboard"])
 
 
 # ─── Health Check ───────────────────────────────────────────

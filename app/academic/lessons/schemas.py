@@ -1,10 +1,10 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import date
 from enum import Enum
 
+from pydantic import BaseModel
 
 # ─── ENUM ───────────────────────────────────────────────────
+
 
 class LessonStatusEnum(str, Enum):
     completed = "completed"
@@ -13,12 +13,13 @@ class LessonStatusEnum(str, Enum):
 
 # ─── RESPONSE ───────────────────────────────────────────────
 
+
 class LessonResponse(BaseModel):
     id: int
     timetable_id: int
     date: date
     status: LessonStatusEnum
-    note: Optional[str] = None
+    note: str | None
     subject_name: str
     group_name: str
     teacher_name: str
@@ -29,11 +30,13 @@ class LessonResponse(BaseModel):
 
 # ─── CANCEL ─────────────────────────────────────────────────
 
+
 class LessonCancel(BaseModel):
-    note: Optional[str] = None
+    note: str | None
 
 
 # ─── STATS ──────────────────────────────────────────────────
+
 
 class LessonStatsResponse(BaseModel):
     total: int

@@ -11,3 +11,4 @@ export const deleteDepartment = (id) => client.delete(`/departments/${id}`);
 export const getDepartmentPrograms = (id) => client.get(`/departments/${id}/programs`);
 export const getDepartmentTeachers = (id) => client.get(`/departments/${id}/teachers`);
 export const getDepartmentStudents = (id) => client.get(`/departments/${id}/students`);
+export const getAllDepartments = () => client.get('/departments/');

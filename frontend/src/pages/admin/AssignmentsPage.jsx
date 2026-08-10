@@ -364,7 +364,7 @@ const DeleteModal = ({ open, assignment, onConfirm, onCancel, loading }) => {
         </div>
         <h3 style={{ margin: '0 0 8px', color: 'var(--text-primary)' }}>Delete Assignment?</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '0 0 24px' }}>
-          {assignment?.teacher_name} → {assignment?.subject_name} → {assignment?.group_name}
+          {assignment?.teacher_name} → {assignment?.subject_name} → Group {assignment?.section_number}
         </p>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={onCancel} style={{
@@ -534,7 +534,7 @@ const AssignmentsPage = () => {
     return (
       (a.teacher_name || '').toLowerCase().includes(q) ||
       (a.subject_name || '').toLowerCase().includes(q) ||
-      (a.group_name || '').toLowerCase().includes(q)
+      (a.section_number?.toString() || '').toLowerCase().includes(q)
     );
   });
 
@@ -677,7 +677,7 @@ const AssignmentsPage = () => {
                       }}>
                         <GraduationCap size={13} style={{ color: '#10b981' }} />
                       </div>
-                      <span style={{ fontWeight: 500, fontSize: 14 }}>{a.group_name}</span>
+                      <span style={{ fontWeight: 500, fontSize: 14 }}>Group {a.section_number}</span>
                     </div>
                   </td>
                   <td style={{ padding: '12px 20px' }}>

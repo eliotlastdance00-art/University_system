@@ -1,27 +1,39 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  LayoutDashboard, Users, Building2, Layers, 
-  GraduationCap, Calendar, BookOpen, Clock, 
-  CheckCircle, FileText, Bell, User, LogOut, ChevronLeft, ChevronRight
+import {
+  LayoutDashboard, Users, Building2, Layers,
+  GraduationCap, Calendar, BookOpen, Clock,
+  CheckCircle, FileText, Bell, User, LogOut,
+  ChevronLeft, ChevronRight, ChevronDown
 } from 'lucide-react';
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [openGroup, setOpenGroup] = useState(null); // haýsy parent açyk
 
   // Role based navigation menus
   const getMenuLinks = () => {
     const role = user?.role || 'student';
-    
+
     if (role === 'admin' || role === 'dean') {
       return [
         { title: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={20} /> },
         { title: 'Users', path: '/admin/users', icon: <Users size={20} /> },
         { title: 'Faculties', path: '/admin/faculties', icon: <Building2 size={20} /> },
         { title: 'Departments', path: '/admin/departments', icon: <Layers size={20} /> },
-        { title: 'Academic', path: '/admin/academic/years', icon: <GraduationCap size={20} /> },
+        {
+          title: 'Academic',
+          icon: <GraduationCap size={20} />,
+          children: [
+            { title: 'Academic Years', path: '/admin/academic-years' },
+            { title: 'Programs', path: '/admin/programs' },
+            { title: 'Subjects', path: '/admin/subjects' },
+            { title: 'Cohorts', path: '/admin/cohorts' },
+          ],
+        },
         { title: 'Assignments', path: '/admin/assignments', icon: <BookOpen size={20} /> },
         { title: 'Timetable', path: '/admin/timetables', icon: <Calendar size={20} /> },
         { title: 'Lessons', path: '/admin/lessons', icon: <Clock size={20} /> },
@@ -29,7 +41,7 @@ const Sidebar = () => {
         { title: 'Grades', path: '/admin/grades', icon: <FileText size={20} /> },
       ];
     }
-    
+
     if (role === 'teacher') {
       return [
         { title: 'Dashboard', path: '/teacher/dashboard', icon: <LayoutDashboard size={20} /> },
@@ -40,17 +52,25 @@ const Sidebar = () => {
         { title: 'Grades', path: '/teacher/grades', icon: <FileText size={20} /> },
       ];
     }
-    
-    // Default student menu
+
     return [
       { title: 'Dashboard', path: '/student/dashboard', icon: <LayoutDashboard size={20} /> },
       { title: 'My Timetable', path: '/student/timetable', icon: <Calendar size={20} /> },
       { title: 'My Grades', path: '/student/grades', icon: <FileText size={20} /> },
       { title: 'My Attendance', path: '/student/attendance', icon: <CheckCircle size={20} /> },
+      { title: 'Assignments', path: '/student/assignments', icon: <BookOpen size={20} /> },
     ];
   };
 
   const links = getMenuLinks();
+
+  // Submenu-dan biri active bolsa, parent-i hem "active" hasapla
+  const isChildActive = (children) =>
+    children?.some((c) => location.pathname.startsWith(c.path));
+
+  const toggleGroup = (title) => {
+    setOpenGroup((prev) => (prev === title ? null : title));
+  };
 
   return (
     <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
@@ -68,17 +88,63 @@ const Sidebar = () => {
 
       <nav className="sidebar-nav">
         <div className="nav-group">
-          {links.map((link) => (
-            <NavLink 
-              key={link.path} 
-              to={link.path} 
-              className={({ isActive }) => `nav-item ${isActive ? 'nav-item--active' : ''}`}
-              title={collapsed ? link.title : ''}
-            >
-              <span className="nav-icon">{link.icon}</span>
-              {!collapsed && <span className="nav-title">{link.title}</span>}
-            </NavLink>
-          ))}
+          {links.map((link) => {
+            // --- Adaty (leaf) item ---
+            if (!link.children) {
+              return (
+                <NavLink
+                  key={link.path}
+                  to={link.path}
+                  className={({ isActive }) => `nav-item ${isActive ? 'nav-item--active' : ''}`}
+                  title={collapsed ? link.title : ''}
+                >
+                  <span className="nav-icon">{link.icon}</span>
+                  {!collapsed && <span className="nav-title">{link.title}</span>}
+                </NavLink>
+              );
+            }
+
+            // --- Expandable parent item ---
+            const active = isChildActive(link.children);
+            const isOpen = openGroup === link.title || active;
+
+            return (
+              <div key={link.title} className="nav-group-item">
+                <button
+                  className={`nav-item nav-item--parent ${active ? 'nav-item--active' : ''}`}
+                  onClick={() => toggleGroup(link.title)}
+                  title={collapsed ? link.title : ''}
+                >
+                  <span className="nav-icon">{link.icon}</span>
+                  {!collapsed && (
+                    <>
+                      <span className="nav-title">{link.title}</span>
+                      <ChevronDown
+                        size={16}
+                        className={`nav-chevron ${isOpen ? 'nav-chevron--open' : ''}`}
+                      />
+                    </>
+                  )}
+                </button>
+
+                {!collapsed && isOpen && (
+                  <div className="nav-submenu">
+                    {link.children.map((child) => (
+                      <NavLink
+                        key={child.path}
+                        to={child.path}
+                        className={({ isActive }) =>
+                          `nav-subitem ${isActive ? 'nav-subitem--active' : ''}`
+                        }
+                      >
+                        {child.title}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <div className="nav-group nav-group--bottom">

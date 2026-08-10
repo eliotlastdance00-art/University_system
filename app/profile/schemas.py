@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, model_validator
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 UPDATABLE_FIELDS = {"name", "email", "faculty_id", "department_id", "section_id"}
 
@@ -27,3 +27,7 @@ class UpdateProfile(BaseModel):
             )
 
         return self
+
+
+class UpdatePassword(BaseModel):
+    new_password: str = Field(..., min_length=8)

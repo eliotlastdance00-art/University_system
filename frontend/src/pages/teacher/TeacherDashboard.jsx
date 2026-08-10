@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Calendar, Clock, MapPin, Users, BookOpen, 
-  CheckCircle, AlertCircle, FileText, Bell, CalendarDays,
-  TrendingUp, Activity
+  CheckCircle, FileText, CalendarDays, TrendingUp, Activity
 } from 'lucide-react';
+import NotificationSidebar from '../../components/NotificationSidebar';
 
 const StatCard = ({ title, value, icon, color, subtitle }) => (
   <div className="glass-card stat-card">
@@ -21,33 +21,7 @@ const StatCard = ({ title, value, icon, color, subtitle }) => (
   </div>
 );
 
-// ────────────────────────────────────────────────────────────
-// FAKE DATA FOR UI DESIGN
-// ────────────────────────────────────────────────────────────
-const MOCK_DATA = {
-  stats: {
-    todayClasses: 3,
-    totalStudents: 145,
-    attendanceRate: 88,
-    ungradedAssignments: 12
-  },
-  todaySchedule: [
-    { id: 1, subject: 'Data Structures', time: '09:00 - 10:30', room: 'Lab 402', group: 'CS-201', attendanceTaken: true, type: 'Lecture' },
-    { id: 2, subject: 'Algorithms', time: '11:00 - 12:30', room: 'Room 305', group: 'CS-202', attendanceTaken: false, type: 'Lecture' },
-    { id: 3, subject: 'Web Engineering', time: '14:00 - 15:30', room: 'Lab 401', group: 'SE-301', attendanceTaken: false, type: 'Lab' },
-  ],
-  notifications: [
-    { id: 1, title: 'Department Meeting', time: '2 hours ago', type: 'info' },
-    { id: 2, title: 'Final Grades Deadline', time: '1 day ago', type: 'warning' }
-  ],
-  weeklyWorkload: [
-    { day: 'Mon', hours: 4 },
-    { day: 'Tue', hours: 6 },
-    { day: 'Wed', hours: 3 },
-    { day: 'Thu', hours: 5 },
-    { day: 'Fri', hours: 2 },
-  ]
-};
+
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
@@ -204,32 +178,11 @@ const TeacherDashboard = () => {
           </div>
         </div>
 
-        {/* Side Column: Notifications & Weekly Workload */}
+        {/* Side Column: Notifications (real API) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-          {/* Notifications */}
-          <div className="glass-card">
-            <div className="flex-between" style={{ marginBottom: 'var(--space-4)' }}>
-              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Bell size={18} className="text-secondary" />
-                Notifications
-              </h3>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {data.notifications.map(n => (
-                <div key={n.id} style={{ 
-                  padding: 'var(--space-3)', 
-                  background: 'var(--bg-input)', 
-                  borderRadius: 'var(--radius-md)',
-                  borderLeft: `3px solid ${n.type === 'warning' ? '#f59e0b' : '#3b82f6'}`
-                }}>
-                  <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{n.title}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>{n.time}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <NotificationSidebar canBroadcast={true} limit={8} />
 
-          {/* Quick Links / Actions */}
+          {/* Quick Actions */}
           <div className="glass-card">
             <h3 style={{ margin: '0 0 var(--space-4) 0', fontSize: '16px' }}>Quick Actions</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 _firebase_app = None
 
 
-def init_firebase(cred_path: str) -> None:
+def init_firebase(cred_path: str | None) -> None:
     """App başlananda 1 gezek çagyrylýar (main.py lifespan-da)."""
     global _firebase_app
     if _firebase_app is not None:

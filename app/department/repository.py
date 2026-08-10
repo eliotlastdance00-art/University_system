@@ -110,7 +110,7 @@ class DepartmentRepository:
                                 JOIN user_profiles up ON u.id=up.user_id
                                 JOIN user_roles    ur ON u.id=ur.user_id
                                 JOIN roles         r  ON ur.role_id=r.id
-                                WHERE up.`department_id`=1 AND r.name="teacher"
+                                WHERE up.`department_id`=%s AND r.name="teacher"
                             """,
                 (department_id,),
             )
@@ -133,3 +133,18 @@ class DepartmentRepository:
                 (department_id,),
             )
             return await cur.fetchall()
+
+    async def get_all(self) -> list[dict]:
+        sql = """
+            SELECT 
+                d.id,
+                d.name,
+                d.faculty_id,
+                f.name AS faculty_name
+            FROM departments d
+            JOIN faculties f ON d.faculty_id = f.id
+            ORDER BY f.name, d.name
+        """
+        async with self.conn.cursor(DictCursor) as cursor:
+            await cursor.execute(sql)
+            return await cursor.fetchall()

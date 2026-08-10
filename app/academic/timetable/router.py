@@ -13,12 +13,13 @@ from app.academic.timetable.schemas import (
 )
 from app.academic.timetable.service import TimetableService
 from app.core.database import get_db
-from app.core.dependencies import admin_required, teacher_required
+from app.core.dependencies import admin_or_student, admin_required, teacher_required
 
 router = APIRouter()
 
 CurrentUser = Annotated[dict, Depends(admin_required)]
 CurrentTeacher = Annotated[dict, Depends(teacher_required)]
+AdminOrStudent = Annotated[dict, Depends(admin_or_student)]
 DbConnection = Annotated[Connection, Depends(get_db)]
 
 
@@ -62,7 +63,7 @@ async def get_all_timetables(
 )
 async def get_group_timetable_week(
     section_id: int,
-    current_user: CurrentUser,
+    current_user: AdminOrStudent,
     conn: DbConnection,
 ) -> list[dict]:
     service = TimetableService(conn)
@@ -78,7 +79,7 @@ async def get_group_timetable_week(
 async def get_group_day_timetable(
     day: TimetableEnum,
     section_id: int,
-    current_user: CurrentUser,
+    current_user: AdminOrStudent,
     conn: DbConnection,
 ) -> list[dict]:
     service = TimetableService(conn)
@@ -90,7 +91,7 @@ async def get_group_day_timetable(
 
 @router.get(
     "/teacher/my",
-    response_model=TimetableResponse,
+    response_model=list[TimetableResponse],
     summary="Get teacher timetable",
     description="Teacher for timetable",
 )

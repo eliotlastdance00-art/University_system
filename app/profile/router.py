@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 
-from .schemas import UpdateProfile
+from .schemas import UpdatePassword, UpdateProfile
 from .services import ProfileService
 
 router = APIRouter()
@@ -21,7 +21,7 @@ async def update_profile(
     current_user: CurrentUser,
     conn: DbConnection,
 ):
-    
+
     service = ProfileService(conn)
     return await service.update_profile_me(data)
 
@@ -35,10 +35,10 @@ async def get_profile(current_user: CurrentUser, conn: DbConnection):
 
 @router.put("/me/password")
 async def update_password(
-    new_password: str,
+    data: UpdatePassword,
     current_user: CurrentUser,
     conn: DbConnection,
 ):
     user_id = current_user["sub"]
     service = ProfileService(conn)
-    return await service.update_password_me(user_id, new_password)
+    return await service.update_password_me(user_id, data.new_password)
