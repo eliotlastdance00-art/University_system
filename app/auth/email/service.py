@@ -56,4 +56,5 @@ async def send_otp_email(to_email: str, otp: str) -> None:
         use_tls=use_tls,
         start_tls=start_tls,
         tls_context=context,
+        timeout=5.0,
     )

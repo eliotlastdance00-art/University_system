@@ -11,11 +11,22 @@ from typing import Annotated
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-):
+) -> dict:
     payload = decode_token(token)
-    if payload:
-        return payload
-    raise HTTPException(status_code=401, detail="Invalid or expired token")
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    # Normalize payload: always expose an integer ``id`` field so that all
+    # routers / services use current_user["id"] regardless of how the JWT
+    # claim was originally named ("sub" per JWT spec → stored as str).
+    if "id" not in payload:
+        try:
+            payload["id"] = int(payload["sub"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=401,
+                detail=f"Token payload missing valid user id: {exc}",
+            ) from exc
+    return payload
 
 
 # ─── Identity helpers ────────────────────────────────────────
@@ -26,14 +37,18 @@ CurrentUser = Annotated[dict, Depends(get_current_user)]
 def get_user_id(current_user: dict) -> int:
     """Return the authenticated user's integer ID from the JWT payload.
 
-    The access-token stores ``user_id`` as a string in the ``sub`` claim
-    (per the JWT spec).  All routers / services must call this helper
-    instead of writing ``int(current_user["sub"])`` inline, so that any
-    future change to the claim name or type is fixed in a single place.
+    ``get_current_user`` now normalises the payload by injecting ``id`` as an
+    ``int`` before any router sees it, so this helper simply reads that field.
+    The ``sub`` fallback is kept for any caller that bypasses the dependency
+    (e.g. tests that build payloads manually).
 
     Raises:
-        ValueError: if ``sub`` is missing or cannot be coerced to ``int``.
+        ValueError: if neither ``id`` nor ``sub`` can be coerced to ``int``.
     """
+    try:
+        return int(current_user["id"])
+    except (KeyError, TypeError, ValueError):
+        pass
     try:
         return int(current_user["sub"])
     except (KeyError, TypeError, ValueError) as exc:

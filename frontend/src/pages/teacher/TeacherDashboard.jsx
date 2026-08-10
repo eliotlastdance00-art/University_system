@@ -21,7 +21,19 @@ const StatCard = ({ title, value, icon, color, subtitle }) => (
   </div>
 );
 
-
+const MOCK_DATA = {
+  stats: {
+    todayClasses: 4,
+    totalStudents: 145,
+    attendanceRate: 94,
+    ungradedAssignments: 12
+  },
+  todaySchedule: [
+    { id: 1, subject: 'Advanced Programming', type: 'Lecture', time: '09:00 AM - 10:30 AM', room: 'Room 101', group: 'CS-301', attendanceTaken: true },
+    { id: 2, subject: 'Database Systems', type: 'Lab', time: '11:00 AM - 12:30 PM', room: 'Lab 3', group: 'CS-302', attendanceTaken: false },
+    { id: 3, subject: 'Web Technologies', type: 'Lecture', time: '14:00 PM - 15:30 PM', room: 'Room 205', group: 'SE-201', attendanceTaken: false }
+  ]
+};
 
 const TeacherDashboard = () => {
   const { user } = useAuth();

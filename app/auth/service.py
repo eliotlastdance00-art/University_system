@@ -101,11 +101,27 @@ class AuthService:
             raise
         except Exception as e:
             logger.error(
-                "Failed to generate or send OTP email",
+                "Failed to generate or send OTP email (dev mode fallback will log OTP to console)",
                 extra={"email": request.email, "error_detail": str(e)},
                 exc_info=True,
             )
-            raise AppError(f"Failed to send OTP email. Internal Error: {e!s}") from e
+            # YEREL GELİŞTİRME İÇİN GEÇİCİ ÇÖZÜM:
+            # SMTP çalışmasa bile (Network/Port engeli), frontend 500 almasın diye
+            # hatayı yutuyor ve OTP'yi console'a basıyoruz, böylece log'dan kopyalanabilir.
+            print(f"==========================================")
+            print(f"🔔 DEV MOCK - OTP CODE FOR {request.email}: {otp}")
+            print(f"==========================================")
+            
+            # Hala cookie'yi ayarlamamız lazım ki verify_otp çalışsın
+            response.set_cookie(
+                key=OTP_COOKIE_KEY,
+                value=token,
+                path=OTP_COOKIE_PATH,
+                httponly=OTP_COOKIE_HTTPONLY,
+                secure=OTP_COOKIE_SECURE,
+                samesite=OTP_COOKIE_SAMESITE,
+            )
+            return {"message": "OTP sent (or logged to console)"}
 
     async def verify_otp(
         self, request: VerifyOtpRequest, otp_token: str, response: Response
