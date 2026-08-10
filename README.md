@@ -192,4 +192,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the module convention every domain 
 
 ## 📄 License
 
-A[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
+A[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE) 

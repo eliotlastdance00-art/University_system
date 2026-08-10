@@ -14,7 +14,7 @@ async def get_dashboard(
     current_user: dict = Depends(admin_or_dean), conn: Connection = Depends(get_db)
 ):
     service = DashboardService(conn)
-    data = await service.get_admin_dashboard(current_user["sub"], current_user["role"])
+    data = await service.get_admin_dashboard(get_user_id(current_user), current_user["role"])
     return AdminDashboardResponse(**data)
 
 

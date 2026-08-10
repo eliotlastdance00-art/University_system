@@ -134,7 +134,7 @@ async def get_by_group(
 )
 async def get_my_assignments(current_user: TeacherUser, conn: DbConnection):
     service = AssignmentService(conn)
-    return await service.get_by_teacher(current_user["id"])
+    return await service.get_by_teacher(get_user_id(current_user))
 
 
 @router.get(
@@ -150,7 +150,7 @@ async def get_my_assignments_by_semester(
 ):
     service = AssignmentService(conn)
     return await service.get_by_teacher_semester(
-        user_id=current_user["id"], semester=semester
+        user_id=get_user_id(current_user), semester=semester
     )
 
 
@@ -162,4 +162,4 @@ async def get_my_assignments_by_semester(
 )
 async def get_my_schedule(current_user: TeacherUser, conn: DbConnection):
     service = AssignmentService(conn)
-    return await service.get_teacher_schedule(current_user["id"])
+    return await service.get_teacher_schedule(get_user_id(current_user))

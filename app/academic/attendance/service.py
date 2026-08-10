@@ -1,4 +1,5 @@
 from app.academic.attendance.repository import AttendanceRepository
+from app.core.dependencies import get_user_id
 from app.academic.attendance.schemas import AttendanceBulkCreate, AttendanceUpdate
 
 from .exceptions import (
@@ -23,7 +24,7 @@ class AttendanceService:
     # ─── GET STUDENTS (Lesson başlanda) ──────────────────────
 
     async def get_students(self, lesson_id: int, current_user: dict) -> list[dict]:
-        await self._check_lesson_owner(lesson_id, int(current_user["sub"]))
+        await self._check_lesson_owner(lesson_id, get_user_id(current_user))
 
         result = await self.repo.get_students_by_lesson(lesson_id)
         if not result:
@@ -37,7 +38,7 @@ class AttendanceService:
     async def bulk_create(
         self, lesson_id: int, data: AttendanceBulkCreate, current_user: dict
     ) -> list[dict]:
-        await self._check_lesson_owner(lesson_id, int(current_user["sub"]))
+        await self._check_lesson_owner(lesson_id, get_user_id(current_user))
 
         records = [
             {"user_id": r.student_id, "status": r.status.value} for r in data.records

@@ -13,7 +13,7 @@ from app.academic.timetable.schemas import (
 )
 from app.academic.timetable.service import TimetableService
 from app.core.database import get_db
-from app.core.dependencies import admin_or_student, admin_required, teacher_required
+from app.core.dependencies import admin_or_student, admin_required, get_user_id, teacher_required
 
 router = APIRouter()
 
@@ -38,7 +38,7 @@ async def create_timetable(
     conn: DbConnection,
 ) -> dict:
     service = TimetableService(conn)
-    return await service.create(data, actor_id=current_user["sub"])
+    return await service.create(data, actor_id=get_user_id(current_user))
 
 
 @router.get(
@@ -100,7 +100,7 @@ async def get_teacher_timetable(
     conn: DbConnection,
 ) -> list[dict]:
     service = TimetableService(conn)
-    return await service.get_teacher_timetable(current_user["id"])
+    return await service.get_teacher_timetable(get_user_id(current_user))
 
 
 @router.get(
@@ -115,7 +115,7 @@ async def get_teacher_day_timetable(
     conn: DbConnection,
 ) -> list[dict]:
     service = TimetableService(conn)
-    return await service.get_teacher_timetable_day(current_user["id"], day)
+    return await service.get_teacher_timetable_day(get_user_id(current_user), day)
 
 
 # ─── ADMIN: UPDATE / DELETE ────────────────────────────────
