@@ -3,3 +3,6 @@ __pycache__/
 .env
 venv/
 app/notifications/firebase_service_account.json
+frontend/public/firebase-messaging-sw 2.js
+frontend/src/firebase 2.js
+.gitignore

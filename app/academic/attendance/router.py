@@ -136,7 +136,11 @@ async def get_my_stats(
     conn: DbConnection,
 ):
     service = AttendanceService(conn)
+<<<<<<< HEAD
     return await service.get_student_stats(get_user_id(current_user))
+=======
+    return await service.get_student_stats(current_user["sub"])
+>>>>>>> main
 
 
 @router.get(
