@@ -1,6 +1,6 @@
 from app.academic.attendance.repository import AttendanceRepository
-from app.core.dependencies import get_user_id
 from app.academic.attendance.schemas import AttendanceBulkCreate, AttendanceUpdate
+from app.core.dependencies import get_user_id
 
 from .exceptions import (
     AttendanceNotFoundError,
@@ -24,17 +24,11 @@ class AttendanceService:
     # ─── GET STUDENTS (Lesson başlanda) ──────────────────────
 
     async def get_students(self, lesson_id: int, current_user: dict) -> list[dict]:
-<<<<<<< HEAD
         await self._check_lesson_owner(lesson_id, get_user_id(current_user))
-=======
-        await self._check_lesson_owner(lesson_id, current_user["user_id"])
->>>>>>> main
 
         result = await self.repo.get_students_by_lesson(lesson_id)
         if not result:
-            raise AttendanceRecordsNotFoundError(
-                "No students found for this lesson."
-            )
+            raise AttendanceRecordsNotFoundError("No students found for this lesson.")
         return result
 
     # ─── BULK CREATE (Attendance bellemek) ───────────────────
@@ -42,11 +36,7 @@ class AttendanceService:
     async def bulk_create(
         self, lesson_id: int, data: AttendanceBulkCreate, current_user: dict
     ) -> list[dict]:
-<<<<<<< HEAD
         await self._check_lesson_owner(lesson_id, get_user_id(current_user))
-=======
-        await self._check_lesson_owner(lesson_id, current_user["user_id"])
->>>>>>> main
 
         records = [
             {"user_id": r.student_id, "status": r.status.value} for r in data.records
@@ -104,7 +94,5 @@ class AttendanceService:
     async def update(self, id: int, data: AttendanceUpdate, current_user: dict) -> dict:
         result = await self.repo.update(id, data.status.value)
         if not result:
-            raise AttendanceNotFoundError(
-                f"Attendance record with id {id} not found."
-            )
+            raise AttendanceNotFoundError(f"Attendance record with id {id} not found.")
         return result

@@ -13,7 +13,12 @@ from app.academic.timetable.schemas import (
 )
 from app.academic.timetable.service import TimetableService
 from app.core.database import get_db
-from app.core.dependencies import admin_or_student, admin_required, get_user_id, teacher_required
+from app.core.dependencies import (
+    admin_or_student,
+    admin_required,
+    get_user_id,
+    teacher_required,
+)
 
 router = APIRouter()
 
