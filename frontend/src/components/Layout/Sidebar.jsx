@@ -55,7 +55,6 @@ const Sidebar = () => {
 
     return [
       { title: 'Dashboard', path: '/student/dashboard', icon: <LayoutDashboard size={20} /> },
-      { title: 'My Timetable', path: '/student/timetable', icon: <Calendar size={20} /> },
       { title: 'My Grades', path: '/student/grades', icon: <FileText size={20} /> },
       { title: 'My Attendance', path: '/student/attendance', icon: <CheckCircle size={20} /> },
       { title: 'Assignments', path: '/student/assignments', icon: <BookOpen size={20} /> },
@@ -145,21 +144,6 @@ const Sidebar = () => {
               </div>
             );
           })}
-        </div>
-
-        <div className="nav-group nav-group--bottom">
-          <NavLink to="/notifications" className={({ isActive }) => `nav-item ${isActive ? 'nav-item--active' : ''}`} title={collapsed ? 'Notifications' : ''}>
-            <span className="nav-icon"><Bell size={20} /></span>
-            {!collapsed && <span className="nav-title">Notifications</span>}
-          </NavLink>
-          <NavLink to="/profile" className={({ isActive }) => `nav-item ${isActive ? 'nav-item--active' : ''}`} title={collapsed ? 'Profile' : ''}>
-            <span className="nav-icon"><User size={20} /></span>
-            {!collapsed && <span className="nav-title">Profile</span>}
-          </NavLink>
-          <button className="nav-item nav-item--logout" onClick={logout} title={collapsed ? 'Logout' : ''}>
-            <span className="nav-icon"><LogOut size={20} /></span>
-            {!collapsed && <span className="nav-title">Logout</span>}
-          </button>
         </div>
       </nav>
     </aside>
