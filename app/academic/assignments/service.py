@@ -27,6 +27,7 @@ class AssignmentService:
             subject_id=data.subject_id,
             section_id=data.section_id,
             semester=data.semester.value,
+            
         )
         if already_exists:
             raise AssignmentAlreadyExistsError()

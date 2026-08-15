@@ -4,7 +4,7 @@ from aiomysql import Connection
 from fastapi import APIRouter, Depends
 
 from app.core.database import get_db
-from app.core.dependencies import admin_or_dean, admin_required
+from app.core.dependencies import admin_or_dean, admin_required, get_user_id
 from app.faculty.service import FacultyService
 
 from .schemas import FacultyCreate, FacultyResponse, FacultyUpdate
@@ -28,7 +28,7 @@ async def create_faculty(
     conn: DbConnection,
 ) -> FacultyResponse:
     service = FacultyService(conn)
-    return await service.create_faculty(data, actor_id=current_user.get("sub"))
+    return await service.create_faculty(data, actor_id=get_user_id(current_user))
 
 
 @router.get(
@@ -73,7 +73,7 @@ async def update_faculty(
     conn: DbConnection,
 ) -> dict:
     service = FacultyService(conn)
-    return await service.update_faculty(id, data, actor_id=current_user.get("sub"))
+    return await service.update_faculty(id, data, actor_id=get_user_id(current_user))
 
 
 @router.delete(
@@ -88,7 +88,7 @@ async def delete_faculty(
     conn: DbConnection,
 ) -> dict:
     service = FacultyService(conn)
-    return await service.delete_faculty(id, actor_id=current_user.get("sub"))
+    return await service.delete_faculty(id, actor_id=get_user_id(current_user))
 
 
 @router.get("/{id}/departments", response_model=list[dict])

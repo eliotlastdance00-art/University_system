@@ -1,0 +1,49 @@
+name: University_system
+
+
+services:
+  app:
+    build: .
+    container_name: backend
+    restart: unless-stoppped
+    ports:
+      - "8000:8000"
+    env-file:
+      - .env
+    depends_on:
+      -Database
+    volumes:
+      - .: /app      
+  
+
+  web:
+    build:
+      context: ./frontend
+    container_name: frontend
+    restart : unless-stopped
+    ports:
+      - "5173:5173"  
+    depends_on:
+      - app  
+    volumes:
+      - /frontend : /frontend  
+
+  Database:
+    image: mysql:8.0
+    container_name: Database
+    restart : unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      -db_data : var/lib/mysql
+
+
+volumes:
+    db_data:      
+
+

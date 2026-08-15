@@ -4,7 +4,7 @@ from aiomysql import Connection
 from fastapi import APIRouter, Depends
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_user_id
 
 from .schemas import UpdatePassword, UpdateProfile
 from .services import ProfileService

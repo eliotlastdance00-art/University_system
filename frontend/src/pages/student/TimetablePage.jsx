@@ -1,198 +1,152 @@
-import React, { useMemo } from 'react';
-import { Calendar, Clock, MapPin, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar as CalendarIcon, Clock, MapPin, Search } from 'lucide-react';
 import { getMyProfile } from '../../api/profile';
 import { getGroupTimetable } from '../../api/timetables';
 import useFetch from '../../utils/useFetch';
 import PageShell from '../../components/PageShell';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-// Bugünün adını DAYS formatına çevir
-const todayName = () => DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
-
-// Tek ders kartı
-const LessonCard = ({ lesson, isToday }) => (
-  <div style={{
-    display: 'flex', alignItems: 'center', gap: 'var(--space-4)',
-    padding: 'var(--space-4)',
-    background: isToday ? 'var(--accent-bg)' : 'var(--bg-input)',
-    border: `1px solid ${isToday ? 'var(--accent-border)' : 'transparent'}`,
-    borderRadius: 'var(--radius-md)',
-    transition: 'all 0.2s',
-  }}>
-    <div style={{
-      minWidth: 56, textAlign: 'center',
-      padding: '8px 0',
-      background: 'var(--bg-card)',
-      borderRadius: 'var(--radius-sm)',
-      boxShadow: 'var(--shadow-sm)',
-    }}>
-      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-        {lesson.start_time?.slice(0, 5) ?? '—'}
-      </div>
-      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>↕</div>
-      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-        {lesson.end_time?.slice(0, 5) ?? '—'}
-      </div>
-    </div>
-
-    <div style={{ flex: 1 }}>
-      <div style={{ fontWeight: 600, fontSize: 15, color: isToday ? 'var(--accent)' : 'var(--text-primary)' }}>
-        {lesson.subject_name ?? lesson.subject ?? '—'}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 4, fontSize: 13, color: 'var(--text-secondary)' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <User size={13} /> {lesson.teacher_name ?? lesson.teacher ?? '—'}
-        </span>
-        {lesson.room && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <MapPin size={13} /> {lesson.room}
-          </span>
-        )}
-      </div>
-    </div>
-  </div>
-);
-
-// Bir gün kolonu
-const DayColumn = ({ day, lessons, isToday }) => (
-  <div style={{
-    background: isToday ? 'rgba(139,92,246,0.06)' : 'transparent',
-    border: `1px solid ${isToday ? 'var(--accent-border)' : 'var(--border)'}`,
-    borderRadius: 'var(--radius-lg)',
-    padding: 'var(--space-4)',
-    minWidth: 0,
-  }}>
-    <div style={{
-      fontWeight: 700, fontSize: 14,
-      color: isToday ? 'var(--accent)' : 'var(--text-secondary)',
-      marginBottom: 'var(--space-3)',
-      paddingBottom: 'var(--space-2)',
-      borderBottom: '1px solid var(--border)',
-      display: 'flex', alignItems: 'center', gap: 6,
-    }}>
-      {isToday && <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />}
-      {day}
-    </div>
-
-    {lessons.length === 0 ? (
-      <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '8px 0' }}>No classes</div>
-    ) : (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        {lessons
-          .sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''))
-          .map((l) => <LessonCard key={l.id} lesson={l} isToday={isToday} />)}
-      </div>
-    )}
-  </div>
-);
-
-// ─── Ana sayfa ───────────────────────────────────────────────
 const TimetablePage = () => {
-  const today = todayName();
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const { data: profile, loading: pLoading, error: pError } = useFetch(
+  const { data: profile, loading: profileLoading, error: profileError } = useFetch(
     () => getMyProfile(),
-    [],
+    []
   );
 
   const sectionId = profile?.section_id ?? null;
 
-  const { data: timetable, loading: tLoading, error: tError } = useFetch(
-    () => getGroupTimetable(sectionId),
-    [sectionId],
+  const { data: timetable, loading: timetableLoading, error: timetableError } = useFetch(
+    () => sectionId ? getGroupTimetable(sectionId) : Promise.resolve({ data: [] }),
+    [sectionId]
   );
 
-  const loading = pLoading || tLoading;
-  const error   = pError || tError;
+  const loading = profileLoading || timetableLoading;
+  const error = profileError || timetableError;
+  const list = timetable ?? [];
 
-  // Backend'den gelen listeyi gün → dersler map'ine dönüştür
-  const byDay = useMemo(() => {
-    const map = {};
-    DAYS.forEach((d) => { map[d] = []; });
-    (timetable ?? []).forEach((item) => {
-      const day = item.day_of_week ?? item.day ?? '';
-      if (map[day]) map[day].push(item);
-    });
-    return map;
-  }, [timetable]);
-
-  const totalLessons = (timetable ?? []).length;
-  const todayCount   = byDay[today]?.length ?? 0;
+  // Group by days
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  
+  const scheduleByDay = DAYS.map(dayName => {
+    return {
+      day: dayName,
+      lessons: list.filter(t => (t.day_of_week === dayName || t.day === dayName) && 
+                               ((t.subject_name || t.subject || '').toLowerCase().includes(searchTerm.toLowerCase())))
+                   .sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''))
+    };
+  });
 
   return (
-    <PageShell loading={loading} error={error} skeletonCount={3}>
-      {/* Header */}
-      <div className="page-header">
+    <PageShell loading={loading} error={error}>
+        <style>
+            {`
+            .day-card {
+                background: var(--bg-card);
+                border: 1px solid var(--border-subtle);
+                border-radius: var(--radius-lg);
+                padding: var(--space-5);
+                backdrop-filter: blur(20px);
+                transition: all 0.3s;
+                height: 100%;
+            }
+            .day-card:hover {
+                border-color: var(--accent-muted);
+                box-shadow: var(--shadow-lg);
+            }
+            .day-header {
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--text-primary);
+                padding-bottom: 12px;
+                border-bottom: 1px solid var(--border-subtle);
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .lesson-slot {
+                background: var(--bg-input);
+                border-radius: var(--radius-md);
+                padding: 12px;
+                margin-bottom: 12px;
+                border-left: 3px solid var(--accent-primary);
+                transition: transform 0.2s;
+            }
+            .lesson-slot:hover {
+                transform: translateX(4px);
+                background: var(--bg-input-focus);
+            }
+            .lesson-title {
+                font-size: 15px;
+                font-weight: 600;
+                color: var(--text-primary);
+                margin-bottom: 4px;
+            }
+            .lesson-detail {
+                font-size: 12px;
+                color: var(--text-secondary);
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                margin-top: 4px;
+            }
+            `}
+        </style>
+
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">My Timetable</h1>
-          <p className="page-subtitle">
-            {totalLessons} lesson{totalLessons !== 1 ? 's' : ''} this week
-            {sectionId ? ` · Section #${sectionId}` : ''}
-          </p>
+          <p className="page-subtitle">Your weekly class schedule</p>
         </div>
-        <div className="page-actions">
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 14px',
-            background: 'var(--accent-bg)',
-            border: '1px solid var(--accent-border)',
-            borderRadius: 'var(--radius-md)',
-            fontSize: 14, color: 'var(--accent)',
-          }}>
-            <Clock size={15} />
-            Today: <strong>{today}</strong> · {todayCount} class{todayCount !== 1 ? 'es' : ''}
-          </div>
+        <div style={{ position: 'relative', width: '250px' }}>
+           <Search size={16} style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--text-muted)' }} />
+           <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Search subjects..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '100%', paddingLeft: '36px' }}
+           />
         </div>
       </div>
 
-      {!sectionId && !loading && (
-        <div style={{
-          textAlign: 'center', padding: 'var(--space-8)',
-          color: 'var(--text-muted)', fontSize: 15,
-        }}>
-          <Calendar size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
-          <p>No section assigned to your account yet.</p>
-        </div>
-      )}
-
-      {sectionId && (
-        <>
-          {/* Today's classes highlighted */}
-          {todayCount > 0 && (
-            <div className="glass-card" style={{ marginBottom: 'var(--space-6)' }}>
-              <h3 style={{ margin: '0 0 var(--space-4) 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Calendar size={18} className="text-secondary" />
-                Today's Classes
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                {byDay[today]
-                  .sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''))
-                  .map((l) => <LessonCard key={l.id} lesson={l} isToday />)}
-              </div>
-            </div>
-          )}
-
-          {/* Full week grid */}
-          <div className="glass-card">
-            <h3 style={{ margin: '0 0 var(--space-5) 0' }}>Full Week</h3>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: 'var(--space-4)',
-            }}>
-              {DAYS.map((day) => (
-                <DayColumn
-                  key={day}
-                  day={day}
-                  lessons={byDay[day]}
-                  isToday={day === today}
-                />
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      <div className="grid grid-3" style={{ gap: 'var(--space-5)' }}>
+        {scheduleByDay.map(({ day, lessons }) => {
+           if (lessons.length === 0 && searchTerm) return null; // Hide empty days when searching
+           
+           return (
+             <div key={day} className="day-card">
+                <div className="day-header">
+                    <CalendarIcon size={18} color="var(--accent-primary)" />
+                    {day}
+                </div>
+                {lessons.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', padding: '20px 0' }}>
+                        No classes scheduled.
+                    </div>
+                ) : (
+                    lessons.map((lesson, idx) => (
+                        <div key={lesson.id || idx} className="lesson-slot">
+                            <div className="lesson-title">{lesson.subject_name || lesson.subject}</div>
+                            <div className="lesson-detail">
+                                <Clock size={12} color="var(--accent-primary)"/> 
+                                {lesson.start_time?.slice(0, 5)} - {lesson.end_time?.slice(0, 5)}
+                            </div>
+                            <div className="lesson-detail">
+                                <MapPin size={12} color="var(--success)"/> 
+                                {lesson.room || 'TBA'}
+                            </div>
+                            <div className="lesson-detail" style={{ marginTop: '8px', color: 'var(--text-muted)' }}>
+                                Prof: {lesson.teacher_name || lesson.teacher || 'TBA'}
+                            </div>
+                        </div>
+                    ))
+                )}
+             </div>
+           );
+        })}
+      </div>
     </PageShell>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { requestForToken, onMessageListener } from '../firebase';
+import { requestForToken, onMessageListener, messagingReady, initMessaging } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { registerDeviceToken } from '../api/notifications';
 
@@ -12,6 +12,11 @@ const NotificationHandler = () => {
     if (!user) return;
 
     const registerToken = async () => {
+      // Wait for the async isSupported() check to finish first.
+      // If messaging is not available (HTTP / non-localhost) skip silently.
+      await initMessaging();
+      if (!messagingReady) return;
+
       const token = await requestForToken();
       if (token) {
         try {
@@ -32,6 +37,13 @@ const NotificationHandler = () => {
     listenerActive.current = true;
 
     const listenLoop = async () => {
+      // Wait for the async isSupported() check; bail if not available.
+      await initMessaging();
+      if (!messagingReady) {
+        listenerActive.current = false;
+        return;
+      }
+
       while (listenerActive.current) {
         try {
           const payload = await onMessageListener();
@@ -45,7 +57,8 @@ const NotificationHandler = () => {
             console.log(`Bildiriş: [${title}] ${body}`);
           }
         } catch (err) {
-          console.error('Foreground listener ýalňyşlyk:', err);
+          // onMessageListener rejects when messaging is unavailable — stop the loop.
+          console.warn('Foreground listener stopped:', err.message);
           break;
         }
       }

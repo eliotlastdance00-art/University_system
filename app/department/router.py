@@ -4,7 +4,7 @@ from aiomysql import Connection
 from fastapi import APIRouter, Depends
 
 from app.core.database import get_db
-from app.core.dependencies import admin_required
+from app.core.dependencies import admin_required, get_user_id
 
 from .schemas import (
     DepartmentCreate,
@@ -39,13 +39,13 @@ async def create_new_department(
     data: DepartmentCreate, current_user: AdminUser, conn: DbConnection
 ):
     service = DepartmentService(conn)
-    return await service.create_department(data, actor_id=current_user.get("sub"))
+    return await service.create_department(data, actor_id=get_user_id(current_user))
 
 
 @router.delete("/{id}", response_model=dict)
 async def delete_id_department(id: int, current_user: AdminUser, conn: DbConnection):
     service = DepartmentService(conn)
-    return await service.delete_department(id, actor_id=current_user.get("sub"))
+    return await service.delete_department(id, actor_id=get_user_id(current_user))
 
 
 @router.put("/{id}", response_model=dict)
@@ -53,7 +53,7 @@ async def put_department(
     id: int, data: DepartmentUpdate, current_user: AdminUser, conn: DbConnection
 ):
     service = DepartmentService(conn)
-    return await service.update_department(id, data, actor_id=current_user.get("sub"))
+    return await service.update_department(id, data, actor_id=get_user_id(current_user))
 
 
 @router.get("/{id}/programs", response_model=list[dict])

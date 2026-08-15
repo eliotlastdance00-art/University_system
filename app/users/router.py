@@ -4,7 +4,7 @@ from aiomysql import Connection
 from fastapi import APIRouter, Depends, status
 
 from app.core.database import get_db
-from app.core.dependencies import admin_required
+from app.core.dependencies import admin_required, get_user_id
 
 from .schemas import (
     SectionAssign,
@@ -86,7 +86,7 @@ async def update_user(
     conn: DbConnection,
 ) -> dict:
     service = UserService(conn)
-    return await service.update_user(id, data, actor_id=current_user.get("sub"))
+    return await service.update_user(id, data, actor_id=get_user_id(current_user))
 
 
 @router.delete(
@@ -101,7 +101,7 @@ async def delete_user(
     conn: DbConnection,
 ) -> dict:
     service = UserService(conn)
-    return await service.delete_user(id, actor_id=current_user.get("sub"))
+    return await service.delete_user(id, actor_id=get_user_id(current_user))
 
 
 @router.post(
@@ -123,7 +123,7 @@ async def post_role(
         faculty_id=data.faculty_id,
         department_id=data.department_id,
         section_id=data.section_id,
-        actor_id=current_user.get("sub"),
+        actor_id=get_user_id(current_user),
     )
 
 
@@ -155,7 +155,7 @@ async def delete_role(
     conn: DbConnection,
 ) -> dict:
     service = UserService(conn)
-    return await service.delete_role(user_id, role_id, actor_id=current_user.get("sub"))
+    return await service.delete_role(user_id, role_id, actor_id=get_user_id(current_user))
 
 
 @router.post(
@@ -172,5 +172,5 @@ async def assign_section(
 ) -> dict:
     service = UserService(conn)
     return await service.assign_section(
-        user_id, data.section_id, actor_id=current_user.get("sub")
+        user_id, data.section_id, actor_id=get_user_id(current_user)
     )

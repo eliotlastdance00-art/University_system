@@ -2,7 +2,7 @@ from aiomysql import Connection
 from fastapi import APIRouter, Depends
 
 from app.core.database import get_db
-from app.core.dependencies import admin_or_dean
+from app.core.dependencies import admin_or_dean, get_user_id
 from app.dashboard.schemas import AdminDashboardResponse
 from app.dashboard.service import DashboardService
 

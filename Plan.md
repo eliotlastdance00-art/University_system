@@ -1,0 +1,8 @@
+1. Attendance + QR-y gutarmaly (dowam edýän zat)Eýýäm başlan zadyň — muny doly gutar, sebäbi bu iň konkret, derrew görünýän gymmaty bolan feature. Session-esasly, wagt bilen çäklenen QR + verify endpoint.
+2. Community/engagement gatlagy — habarlar + chat/topar + Moderator rolyPul soramazdan öň ilki "gaýdyp gelere sebäp" gerek. Habarlar bölümi bilen chat toparlaryny we Moderator rolyny şu tapgyrda gur — sebäbi galan zatlaryň (ýaryş, leaderboard) hemmesi şu infrastrukturanyň üstünde işlär.
+3. Gamification — leaderboard/ball sistemasyEngagement bar bolansoň manysy bar zat. Dowamat, chat-daky işjeňlik, ýaryş netijeleri — bulardan ball ýygnalýar, top-list görkezilýär.
+4. Ýaryşlar (mugt wersiýa bilen başla)Kompýuter/CTF, diller, himiýa-biologiýa, fizika — ilki mugt synag hökmünde çykar (submission + leaderboard infrastrukturasy şu ýerde synalýar). Töleg goşmak indiki tapgyrda.
+5. Bir pilot uniwersitetde doly synap görŞu wagta çenli gurlan zat bir uniwersitet (single-tenant) görnüşinde işleýär — muny real ulanyjylar bilen synap, näme işleýär/işlänok görmeli. Bu iň gymmatly maglumat çeşmesi.
+6. Multi-tenant arhitekturaDiňe pilot gowy netije berenden soň şuňa geç — sebäbi entek subut edilmedik zady köpeltmegiň manysy ýok. tenant_id, subdomain, onboarding akymy şu tapgyrda gurulýar.
+7. Marketplace + töleg sistemasyIndi köp uniwersitetde ulanyjy bar — şonda repetitorlyk, konspekt satuw, pully ýaryş girişi, Stripe Connect ýaly töleg integrasiýasy manyly bolýar. Ynam we ulanyjy sany bolmasa, marketplace boş bolar.
+8. Server optimizasiýa/scaleCaching (Redis), background job (queue), connection pooling, horizontal scaling — bulary ulanyjy sany hakykatdan köpelip başlanda güýçlendir. Öňünden aşa optimizasiýa etmek wagt ýitirmek bolýar.
