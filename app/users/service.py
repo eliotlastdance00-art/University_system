@@ -1,6 +1,7 @@
 from app.academic.sections.exceptions import SectionNotFoundError
 from app.core.audit_log import AuditAction, AuditLogger
 from app.core.logger import get_domain_logger
+from app.core.security import hash_password
 
 from .exceptions import (
     RoleAlreadyAssignedError,
@@ -10,7 +11,6 @@ from .exceptions import (
     StudentRoleRequiredError,
     UserAlreadyExistsError,
     UserNotFoundError,
-    WeakPasswordError,
 )
 from .repository import UsersRepository
 from .schemas import UserCreate, UserResponse, UserSearchFilters, UserUpdate
@@ -31,11 +31,6 @@ class UserService:
         self.repo = UsersRepository(self.conn)
         self.audit = AuditLogger(self.conn)
 
-    # _transaction() aýryldy: begin/commit/rollback eýýäm
-    # app.database.get_db() dependency-de bir gezek, request-level
-    # dolandyrylýar. Service-de ikinji gezek açsak, iki gatlak
-    # transaction çaknyşygy döreýärdi (double-commit).
-
     async def _get_or_404(self, id: int) -> dict:
         """Kullanıcı varlığını kontrol eden ortak helper metot."""
         user = await self.repo.get_by_id_users(id)
@@ -46,14 +41,12 @@ class UserService:
     async def user_create(
         self, data: UserCreate, actor_id: int | None = None
     ) -> UserResponse:
+        hash_pass = hash_password(data.password)
         existing_user = await self.repo.get_by_email_users(data.email)
         if existing_user:
             raise UserAlreadyExistsError()
 
-        if not data.password or len(data.password) < 8:
-            raise WeakPasswordError()
-
-        await self.repo.create_user(data.full_name, data.email, data.password)
+        await self.repo.create_user(data.full_name, data.email, hash_pass)
         created_user = await self.repo.get_by_email_users(data.email)
 
         await self.audit.log(
@@ -83,9 +76,6 @@ class UserService:
     async def update_user(
         self, id: int, data: UserUpdate, actor_id: int | None = None
     ) -> dict:
-        if data.password is not None and len(data.password) < 8:
-            raise WeakPasswordError()
-
         current_user = await self._get_or_404(id)
 
         new_full_name = (
@@ -97,8 +87,9 @@ class UserService:
         )
 
         if data.password is not None:
+            hashed_pass = hash_password(data.password)
             await self.repo.update_user(
-                id, new_full_name, new_email, data.password, new_is_active
+                id, new_full_name, new_email, hashed_pass, new_is_active
             )
         else:
             await self.repo.update_user_without_password(

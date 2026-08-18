@@ -1,21 +1,14 @@
 from aiomysql import DictCursor
 
-from app.core.security import hash_password
-
 
 class UsersRepository:
     def __init__(self, conn):
         self.conn = conn
 
-    # NOTE: Bu repo metodlarynyň hiç biri indi `commit()` çagyrmaýar.
-    # Transaction-y (begin/commit/rollback) diňe service gatlagy dolandyrýar,
-    # sebäbi bir transaction-yň içinde birnäçe repo çagyryşy + audit log bolup biler.
-
     async def create_user(self, full_name: str, email: str, password: str):
-        hash_pass = hash_password(password)
         sql = "INSERT INTO users(full_name,email,password) VALUES (%s,%s,%s)"
         async with self.conn.cursor(DictCursor) as cursor:
-            await cursor.execute(sql, (full_name, email, hash_pass))
+            await cursor.execute(sql, (full_name, email, password))
 
     async def get_all_users(self):
         sql = """
@@ -30,7 +23,6 @@ class UsersRepository:
             return await cursor.fetchall()
 
     async def get_by_id_users(self, id: int):
-        # section_id goşuldy — assign_section-da öňki ýagdaýy audit üçin gerek
         sql = """
         SELECT u.id, u.full_name, u.email, u.is_active, up.section_id
         FROM users u
@@ -40,7 +32,7 @@ class UsersRepository:
         async with self.conn.cursor(DictCursor) as cursor:
             await cursor.execute(sql, (id,))
             return await cursor.fetchone()
-        
+
     async def get_by_email_users(self, email: str):
         sql = "SELECT id,full_name,email,is_active FROM users WHERE email=%s "
         async with self.conn.cursor(DictCursor) as cursor:
@@ -50,10 +42,9 @@ class UsersRepository:
     async def update_user(
         self, id: int, full_name: str, email: str, password: str, is_active: bool
     ):
-        hash_pass = hash_password(password)
         sql = "UPDATE users SET full_name=%s,email=%s,password=%s,is_active=%s WHERE id=%s"
         async with self.conn.cursor(DictCursor) as cursor:
-            await cursor.execute(sql, (full_name, email, hash_pass, is_active, id))
+            await cursor.execute(sql, (full_name, email, password, is_active, id))
 
     async def update_user_without_password(
         self, id: int, full_name: str, email: str, is_active: bool

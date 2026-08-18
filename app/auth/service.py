@@ -58,6 +58,7 @@ class AuthService:
         """Verify email/password, then trigger OTP issuance as the second factor."""
         try:
             user = await self.repo.get_user_for_login(data.email)
+            
             if not user or not verify_password(user["password"], data.password):
                 raise InvalidCredentialsError()
 
@@ -73,15 +74,16 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "User login failed due to an unexpected error",
                 extra={"error_detail": str(e), "email": data.email},
-                exc_info=True,
             )
             raise AppError(f"Login Error: {e!s}") from e
 
     async def send_otp(self, request: SendOtpRequest, response: Response):
         """Generate an OTP, embed it in a signed short-lived token, email it, and cookie the token."""
+        otp = None
+        token = ""
         try:
             otp = create_otp()
             token = create_otp_token(request.email, otp)
@@ -100,27 +102,27 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Failed to generate or send OTP email (dev mode fallback will log OTP to console)",
                 extra={"email": request.email, "error_detail": str(e)},
-                exc_info=True,
             )
             # YEREL GELİŞTİRME İÇİN GEÇİCİ ÇÖZÜM:
             # SMTP çalışmasa bile (Network/Port engeli), frontend 500 almasın diye
             # hatayı yutuyor ve OTP'yi console'a basıyoruz, böylece log'dan kopyalanabilir.
-            print(f"==========================================")
+            print("==========================================")
             print(f"🔔 DEV MOCK - OTP CODE FOR {request.email}: {otp}")
-            print(f"==========================================")
+            print("==========================================")
             
             # Hala cookie'yi ayarlamamız lazım ki verify_otp çalışsın
-            response.set_cookie(
-                key=OTP_COOKIE_KEY,
-                value=token,
-                path=OTP_COOKIE_PATH,
-                httponly=OTP_COOKIE_HTTPONLY,
-                secure=OTP_COOKIE_SECURE,
-                samesite=OTP_COOKIE_SAMESITE,
-            )
+            if token:
+                response.set_cookie(
+                    key=OTP_COOKIE_KEY,
+                    value=token,
+                    path=OTP_COOKIE_PATH,
+                    httponly=OTP_COOKIE_HTTPONLY,
+                    secure=OTP_COOKIE_SECURE,
+                    samesite=OTP_COOKIE_SAMESITE,
+                )
             return {"message": "OTP sent (or logged to console)"}
 
     async def verify_otp(
@@ -193,10 +195,9 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "OTP verification failed due to an unexpected error",
                 extra={"email": request.email, "error_detail": str(e)},
-                exc_info=True,
             )
             raise AppError("An unexpected error occurred during verification") from e
 
@@ -260,10 +261,9 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Token rotation failed during refresh attempt",
                 extra={"error_detail": str(e)},
-                exc_info=True,
             )
             raise AppError("An unexpected error occurred during token refresh") from e
 
@@ -275,9 +275,8 @@ class AuthService:
         except AppError:
             raise
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "User logout failed",
                 extra={"error_detail": str(e)},
-                exc_info=True,
             )
             raise AppError("An error occurred during logout") from e
