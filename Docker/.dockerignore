@@ -1,0 +1,90 @@
+# ═══════════════════════════════════════════════════════════
+# .dockerignore  —  build context-den aýrylýan faýllar
+# Context root:  /University_system/  (docker-compose context: ..)
+# ═══════════════════════════════════════════════════════════
+
+
+# ── Python ──────────────────────────────────────────────────
+venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+**/*.egg-info/
+**/*.egg
+
+# Test & coverage (production image-e gerek däl)
+.pytest_cache/
+**/.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+
+# Type-checker / linter cache
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+
+# ── Node / Frontend ──────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.cache/
+frontend/coverage/
+frontend/.oxlintrc.json
+frontend/README.md
+
+
+# ── Git & CI ────────────────────────────────────────────────
+.git/
+.gitignore
+.github/
+
+
+# ── IDE / editor ────────────────────────────────────────────
+.idea/
+.vscode/
+**/.DS_Store
+Thumbs.db
+
+
+# ── Secrets & environment ───────────────────────────────────
+.env
+.env.*
+!.env.example
+# frontend-iň .env faýllary hem
+frontend/.env
+frontend/.env.*
+
+
+# ── Docker (özi özüne girmesin) ─────────────────────────────
+Docker/
+docker-compose*.yml
+**/Dockerfile*
+
+
+# ── Docs (image-e gerek däl) ────────────────────────────────
+README.md
+Arhitecture.md
+Contributing.md
+SECURITY.md
+Plan.md
+LICENSE
+*.md
+
+
+# ── Database (diňe MySQL image ulanýar, backend image-e gerek däl) ──
+database/
+
+
+# ── Log & runtime ───────────────────────────────────────────
+*.log
+**/*.log
+logs/
+
+
+# ── OS & misc ───────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+Thumbs.db

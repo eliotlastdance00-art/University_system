@@ -29,6 +29,7 @@ class FacultyService:
         existing = await self.repo.get_faculty_by_code(data.code)
         if existing:
             raise FacultyAlreadyExistsError()
+        
 
         await self.repo.create_faculty(data.name, data.code)
         faculty = await self.repo.get_faculty_by_code(data.code)

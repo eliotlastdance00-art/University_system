@@ -17,7 +17,7 @@ WORKDIR /code
 
 # pip-i takyk wersiýa berkidip täzeleýäris - "häzirki iň soňky"
 # diýen näbelli ýagdaýa bil baglamzok.
-RUN pip install --no-cache-dir --upgrade pip==26.0
+RUN pip install --no-cache-dir --upgrade pip
 
 COPY requirements.txt .
 # --user bilen paketleri /root/.local-a gurýarys - şeýlelik

@@ -1,17 +1,24 @@
 from datetime import time
 
+from arq import create_pool
+from arq.connections import RedisSettings
+
 from app.academic.assignments.exceptions import AssignmentNotFoundError
 from app.academic.assignments.repository import AssignmentRepository
 from app.academic.timetable.repository import TimetableRepository
 from app.academic.timetable.schemas import (
+    RoomCreate,
+    RoomUpdate,
     TimetableCreate,
     TimetableEnum,
     TimetableUpdate,
 )
 from app.core.audit_log import AuditAction, AuditLogger
+from app.core.config import settings
 
 from .exceptions import (
     InvalidTimeRangeError,
+    RoomNotFoundError,
     TeacherScheduleConflictError,
     TimetableConflictError,
     TimetableNotFoundError,
@@ -173,3 +180,220 @@ class TimetableService:
             new_value=None,
         )
         return {"message": f"ID={id} succesfully deleted"}
+
+    # ═══════════════════════════════════════════════════════════
+    # GENERATION TASKS & DRAFTS
+    # ═══════════════════════════════════════════════════════════
+
+    async def _get_redis_pool(self):
+
+        return await create_pool(
+            RedisSettings(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
+        )
+
+    async def create_generation_task(self, actor_id: int, parameters: dict) -> dict:
+        # 1. Veritabanında PENDING statüsünde task oluştur
+        task = await self.repo.create_task(created_by=actor_id, parameters=parameters)
+
+        # 2. Redis üzerinden ARQ worker'a işi gönder
+        redis = await self._get_redis_pool()
+        await redis.enqueue_job("generate_timetable_task", task["id"], parameters)
+        await redis.close()
+
+        return task
+
+    async def get_generation_tasks(self) -> list[dict]:
+        return await self.repo.get_all_tasks()
+
+    async def get_generation_task(self, task_id: int) -> dict:
+        task = await self.repo.get_task(task_id)
+        if not task:
+            from app.core.exceptions import NotFoundError
+
+            raise NotFoundError("Task not found")
+        return task
+
+    async def get_task_drafts(self, task_id: int) -> list[dict]:
+        await self.get_generation_task(task_id)
+        return await self.repo.get_drafts_by_task(task_id)
+
+    async def apply_task_drafts(self, task_id: int, actor_id: int) -> dict:
+        task = await self.get_generation_task(task_id)
+        if task["status"] != "COMPLETED":
+            from app.core.exceptions import ValidationError
+
+            raise ValidationError("Can only apply COMPLETED tasks")
+
+        drafts = await self.repo.get_drafts_by_task(task_id)
+        if not drafts:
+            from app.core.exceptions import NotFoundError
+
+            raise NotFoundError("No drafts found for this task")
+
+        created_timetables = []
+        for d in drafts:
+            # We must convert times back to strings or time objects properly for TimetableCreate
+            from datetime import datetime, timezone
+
+            # Start and end time from DB could be timedelta or string, we assume string 'HH:MM:SS' here
+            # TimetableCreate expects datetime.time
+            fmt = "%H:%M:%S"
+            st = (
+                datetime.strptime(d["start_time"], fmt).replace(tzinfo=timezone.utc).time()
+                if isinstance(d["start_time"], str)
+                else d["start_time"]
+            )
+            et = (
+                datetime.strptime(d["end_time"], fmt).replace(tzinfo=timezone.utc).time()
+                if isinstance(d["end_time"], str)
+                else d["end_time"]
+            )
+
+            data = TimetableCreate(
+                assignment_id=d["assignment_id"],
+                day=TimetableEnum(d["day"]),
+                start_time=st,
+                end_time=et,
+                room=d.get("room") or "",
+                room_id=d.get("room_id"),
+            )
+            # This self.create does conflict checking.
+            t = await self.create(data, actor_id=actor_id)
+            created_timetables.append(t)
+
+        # Clean up
+        await self.repo.delete_drafts_by_task(task_id)
+        await self.repo.delete_task(task_id)
+
+        return {
+            "message": f"Successfully applied {len(created_timetables)} timetable entries."
+        }
+
+    async def delete_generation_task(self, task_id: int) -> dict:
+        await self.get_generation_task(task_id)
+        await self.repo.delete_drafts_by_task(task_id)
+        await self.repo.delete_task(task_id)
+        return {"message": "Task and associated drafts deleted"}
+
+    # ═══════════════════════════════════════════════════════════
+    # ROOMS
+    # ═══════════════════════════════════════════════════════════
+
+    async def get_all_rooms(self, active_only: bool = False) -> list[dict]:
+        return await self.repo.get_all_rooms(active_only=active_only)
+
+    async def get_room(self, room_id: int) -> dict:
+        room = await self.repo.get_room_by_id(room_id)
+        if not room:
+            raise RoomNotFoundError()
+        return room
+
+    async def create_room(self, data: RoomCreate, actor_id: int | None = None) -> dict:
+        room = await self.repo.create_room(
+            name=data.name,
+            capacity=data.capacity,
+            room_type=data.room_type.value,
+            building=data.building,
+            floor=data.floor,
+            is_active=data.is_active,
+        )
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.CREATE,
+            entity_name="room",
+            entity_id=room["id"],
+            old_value=None,
+            new_value=dict(room),
+        )
+        return room
+
+    async def update_room(self, room_id: int, data: RoomUpdate, actor_id: int | None = None) -> dict:
+        current = await self.get_room(room_id)
+        kwargs = {}
+        if data.name is not None:
+            kwargs["name"] = data.name
+        if data.capacity is not None:
+            kwargs["capacity"] = data.capacity
+        if data.room_type is not None:
+            kwargs["room_type"] = data.room_type.value
+        if data.building is not None:
+            kwargs["building"] = data.building
+        if data.floor is not None:
+            kwargs["floor"] = data.floor
+        if data.is_active is not None:
+            kwargs["is_active"] = data.is_active
+
+        updated = await self.repo.update_room(room_id, **kwargs)
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.UPDATE,
+            entity_name="room",
+            entity_id=room_id,
+            old_value=dict(current),
+            new_value=dict(updated),
+        )
+        return updated
+
+    async def delete_room(self, room_id: int, actor_id: int | None = None) -> dict:
+        current = await self.get_room(room_id)
+        deleted = await self.repo.delete_room(room_id)
+        if not deleted:
+            from app.core.exceptions import AppError
+            raise AppError("Failed to delete room")
+        await self.audit.log(
+            actor_id=actor_id,
+            action=AuditAction.DELETE,
+            entity_name="room",
+            entity_id=room_id,
+            old_value=dict(current),
+            new_value=None,
+        )
+        return {"message": f"Room ID={room_id} deleted"}
+
+    # ═══════════════════════════════════════════════════════════
+    # TIME SLOTS
+    # ═══════════════════════════════════════════════════════════
+
+    async def get_time_slots(self) -> list[dict]:
+        return await self.repo.get_all_time_slots()
+
+    # ═══════════════════════════════════════════════════════════
+    # TEACHER AVAILABILITY
+    # ═══════════════════════════════════════════════════════════
+
+    async def get_teacher_availability(self, user_id: int) -> list[dict]:
+        return await self.repo.get_teacher_availabilities(user_id)
+
+    async def set_teacher_availability(self, user_id: int, day: str, slot_number: int) -> dict:
+        return await self.repo.set_teacher_availability(user_id, day, slot_number)
+
+    async def bulk_set_teacher_availability(self, user_id: int, entries: list[dict]) -> dict:
+        count = await self.repo.bulk_set_teacher_availability(user_id, entries)
+        return {"message": f"Set {count} availability slots for teacher {user_id}"}
+
+    async def delete_teacher_availability(self, user_id: int, day: str | None = None) -> dict:
+        count = await self.repo.delete_teacher_availability(user_id, day)
+        return {"message": f"Deleted {count} availability entries"}
+
+    # ═══════════════════════════════════════════════════════════
+    # LECTURE GROUPS
+    # ═══════════════════════════════════════════════════════════
+
+    async def create_lecture_group(self, name: str, subject_id: int,
+                                  semester: str | None, assignment_ids: list[int]) -> dict:
+        return await self.repo.create_lecture_group(name, subject_id, semester, assignment_ids)
+
+    async def get_all_lecture_groups(self) -> list[dict]:
+        return await self.repo.get_all_lecture_groups()
+
+    async def get_lecture_group(self, group_id: int) -> dict:
+        group = await self.repo.get_lecture_group(group_id)
+        if not group:
+            from app.core.exceptions import NotFoundError
+            raise NotFoundError("Lecture group not found")
+        return group
+
+    async def delete_lecture_group(self, group_id: int) -> dict:
+        await self.get_lecture_group(group_id)
+        await self.repo.delete_lecture_group(group_id)
+        return {"message": f"Lecture group ID={group_id} deleted"}
