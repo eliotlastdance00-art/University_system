@@ -1,3 +1,6 @@
+from collections.abc import Sequence
+from typing import Any, ClassVar
+
 import aiomysql
 from arq.connections import RedisSettings
 
@@ -53,7 +56,7 @@ async def generate_timetable_task(ctx, task_id: int, parameters: dict):
 
 
 class WorkerSettings:
-    functions = [generate_timetable_task]
+    functions: ClassVar[Sequence[Any]] = [generate_timetable_task]
     redis_settings = RedisSettings(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
     on_startup = startup
     on_shutdown = shutdown

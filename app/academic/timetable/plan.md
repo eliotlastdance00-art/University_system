@@ -64,13 +64,13 @@ Aşağıdaki adımlar sırasıyla uygulanacaktır:
 - [x] `DELETE /timetable/tasks/{task_id}` (İşlemi ve oluşturulan taslağı iptal edip çöpe atar)
 
 ### Aşama 4: Timetable Generator Algoritması (Core Logic)
-- [ ] `timetable/generator.py` dosyasının oluşturulması.
-- [ ] Gerekli verilerin (Hocalar, Dersler, Gruplar/Sectionlar, Aktif Assignments) veritabanından toplu olarak çekilmesi.
-- [ ] **Algoritma Kısıtlarının Yazılması:**
-  - [ ] *Kısıt 1:* Bir hocaya aynı gün ve saatte birden fazla ders atanamaz.
-  - [ ] *Kısıt 2:* Bir öğrenci grubuna (section) aynı saatte birden fazla ders atanamaz.
-  - [ ] *Kısıt 3:* Atanan ders saati aralığı belirlenen mesai saatleri içinde olmalıdır.
-- [ ] Algoritmanın tüm listeyi başarıyla atadığında statüyü `COMPLETED` yapması ve taslak tabloya kaydetmesi.
+- [x] `timetable/generator.py` dosyasının oluşturulması.
+- [x] Gerekli verilerin (Hocalar, Dersler, Gruplar/Sectionlar, Aktif Assignments) veritabanından toplu olarak çekilmesi.
+- [x] **Algoritma Kısıtlarının Yazılması:**
+  - [x] *Kısıt 1:* Bir hocaya aynı gün ve saatte birden fazla ders atanamaz.
+  - [x] *Kısıt 2:* Bir öğrenci grubuna (section) aynı saatte birden fazla ders atanamaz.
+  - [x] *Kısıt 3:* Atanan ders saati aralığı belirlenen mesai saatleri içinde olmalıdır.
+- [x] Algoritmanın tüm listeyi başarıyla atadığında statüyü `COMPLETED` yapması ve taslak tabloya kaydetmesi.
 
 ### Aşama 5: Test ve Optimizasyon
 - [ ] Worker üzerinden algoritmanın tam entegre bir şekilde asenkron çalıştırılması.

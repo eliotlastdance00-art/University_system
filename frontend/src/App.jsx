@@ -31,6 +31,7 @@ import CohortsPage  from './pages/admin/CohortPage';
 import ProgramsPage  from './pages/admin/ProgramsPage';
 import AcademicYearsPage  from './pages/admin/AcademicYearsPage';
 import LessonsPage from './pages/admin/LessonsPage';
+import AdminTimetablePage from './pages/admin/AdminTimetablePage';
 import NotificationsPage from './pages/NotificationsPage';
 
 
@@ -75,6 +76,7 @@ const App = () => {
                 <Route path="programs" element={<ProgramsPage />} />
                 <Route path="academic-years" element={<AcademicYearsPage />} />
                 <Route path="lessons" element={<LessonsPage />} />
+                <Route path="timetables" element={<AdminTimetablePage />} />
               </Route>
 
               {/* Dean Routes */}
