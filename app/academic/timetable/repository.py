@@ -314,3 +314,124 @@ class TimetableRepository(BaseRepository):
 
             await cur.execute(query, params)
             return await cur.fetchone() is not None
+
+    # ─── GENERATION TASKS ────────────────────────────────────
+
+    async def create_task(self, created_by: int, parameters: dict) -> dict:
+        import json
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute(
+                """
+                    INSERT INTO timetable_generation_tasks
+                        (status, parameters, created_by)
+                    VALUES
+                        ('PENDING', %s, %s)
+                """,
+                (json.dumps(parameters), created_by)
+            )
+            task_id = cur.lastrowid
+        return await self.get_task(task_id)
+
+    async def get_task(self, task_id: int) -> dict | None:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute(
+                """
+                    SELECT id, status, parameters, error_message, created_by, created_at, completed_at
+                    FROM timetable_generation_tasks
+                    WHERE id = %s
+                """,
+                (task_id,)
+            )
+            return await cur.fetchone()
+
+    async def get_all_tasks(self) -> list[dict]:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute(
+                """
+                    SELECT id, status, parameters, error_message, created_by, created_at, completed_at
+                    FROM timetable_generation_tasks
+                    ORDER BY created_at DESC
+                """
+            )
+            return await cur.fetchall()
+
+    async def update_task_status(self, task_id: int, status: str, error_message: str | None = None) -> None:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute(
+                """
+                    UPDATE timetable_generation_tasks
+                    SET status = %s, error_message = %s,
+                        completed_at = IF(%s IN ('COMPLETED', 'FAILED'), CURRENT_TIMESTAMP, completed_at)
+                    WHERE id = %s
+                """,
+                (status, error_message, status, task_id)
+            )
+
+    # ─── DRAFTS ──────────────────────────────────────────────
+
+    async def create_draft(self, task_id: int, assignment_id: int, day: str, start_time: str, end_time: str, room: str) -> None:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute(
+                """
+                    INSERT INTO timetable_drafts
+                        (task_id, assignment_id, day, start_time, end_time, room)
+                    VALUES
+                        (%s, %s, %s, %s, %s, %s)
+                """,
+                (task_id, assignment_id, day, start_time, end_time, room)
+            )
+
+    async def get_drafts_by_task(self, task_id: int) -> list[dict]:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute(
+                """
+                    SELECT
+                        d.id,
+                        d.task_id,
+                        d.day,
+                        TIME_FORMAT(d.start_time, '%%H:%%i:%%s') as start_time,
+                        TIME_FORMAT(d.end_time, '%%H:%%i:%%s') as end_time,
+                        d.room,
+                        d.assignment_id,
+                        sa.semester,
+                        sa.user_id    AS teacher_id,
+                        u.full_name   AS teacher_name,
+                        sa.subject_id,
+                        s.name        AS subject_name,
+                        sa.section_id,
+                        sec.number    AS section_number
+                    FROM timetable_drafts d
+                    JOIN subject_assignments sa ON sa.id=d.assignment_id
+                    JOIN users               u  ON u.id=sa.user_id
+                    JOIN subjects            s  ON s.id=sa.subject_id
+                    JOIN sections            sec ON sec.id=sa.section_id
+                    WHERE d.task_id = %s
+                    ORDER BY
+                            FIELD(d.day,
+                            "monday","tuesday","wednesday",
+                            "thursday","friday","saturday"),
+                            d.start_time;
+                """,
+                (task_id,)
+            )
+            return await cur.fetchall()
+
+    async def delete_drafts_by_task(self, task_id: int) -> None:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute(
+                """
+                    DELETE FROM timetable_drafts
+                    WHERE task_id = %s
+                """,
+                (task_id,)
+            )
+
+    async def delete_task(self, task_id: int) -> None:
+        async with self.conn.cursor(DictCursor) as cur:
+            await cur.execute(
+                """
+                    DELETE FROM timetable_generation_tasks
+                    WHERE id = %s
+                """,
+                (task_id,)
+            )

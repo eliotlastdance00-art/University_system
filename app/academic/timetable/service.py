@@ -1,5 +1,8 @@
 from datetime import time
 
+from arq import create_pool
+from arq.connections import RedisSettings
+
 from app.academic.assignments.exceptions import AssignmentNotFoundError
 from app.academic.assignments.repository import AssignmentRepository
 from app.academic.timetable.repository import TimetableRepository
@@ -9,6 +12,7 @@ from app.academic.timetable.schemas import (
     TimetableUpdate,
 )
 from app.core.audit_log import AuditAction, AuditLogger
+from app.core.config import settings
 
 from .exceptions import (
     InvalidTimeRangeError,
@@ -173,3 +177,94 @@ class TimetableService:
             new_value=None,
         )
         return {"message": f"ID={id} succesfully deleted"}
+
+    # ─── GENERATION TASKS & DRAFTS ────────────────────────────────────
+
+    async def _get_redis_pool(self):
+
+        return await create_pool(
+            RedisSettings(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
+        )
+
+    async def create_generation_task(self, actor_id: int, parameters: dict) -> dict:
+        # 1. Veritabanında PENDING statüsünde task oluştur
+        task = await self.repo.create_task(created_by=actor_id, parameters=parameters)
+
+        # 2. Redis üzerinden ARQ worker'a işi gönder
+        redis = await self._get_redis_pool()
+        await redis.enqueue_job("generate_timetable_task", task["id"], parameters)
+        await redis.close()
+
+        return task
+
+    async def get_generation_tasks(self) -> list[dict]:
+        return await self.repo.get_all_tasks()
+
+    async def get_generation_task(self, task_id: int) -> dict:
+        task = await self.repo.get_task(task_id)
+        if not task:
+            from app.core.exceptions import AppError
+
+            raise AppError("Task not found", status_code=404)
+        return task
+
+    async def get_task_drafts(self, task_id: int) -> list[dict]:
+        task = await self.get_generation_task(task_id)
+        return await self.repo.get_drafts_by_task(task_id)
+
+    async def apply_task_drafts(self, task_id: int, actor_id: int) -> dict:
+        task = await self.get_generation_task(task_id)
+        if task["status"] != "COMPLETED":
+            from app.core.exceptions import AppError
+
+            raise AppError("Can only apply COMPLETED tasks", status_code=400)
+
+        drafts = await self.repo.get_drafts_by_task(task_id)
+        if not drafts:
+            from app.core.exceptions import AppError
+
+            raise AppError("No drafts found for this task", status_code=404)
+
+        created_timetables = []
+        for d in drafts:
+            # We must convert times back to strings or time objects properly for TimetableCreate
+            from datetime import datetime
+
+            # Start and end time from DB could be timedelta or string, we assume string 'HH:MM:SS' here
+            # TimetableCreate expects datetime.time
+            fmt = "%H:%M:%S"
+            st = (
+                datetime.strptime(d["start_time"], fmt).time()
+                if isinstance(d["start_time"], str)
+                else d["start_time"]
+            )
+            et = (
+                datetime.strptime(d["end_time"], fmt).time()
+                if isinstance(d["end_time"], str)
+                else d["end_time"]
+            )
+
+            data = TimetableCreate(
+                assignment_id=d["assignment_id"],
+                day=TimetableEnum(d["day"]),
+                start_time=st,
+                end_time=et,
+                room=d["room"],
+            )
+            # This self.create does conflict checking.
+            t = await self.create(data, actor_id=actor_id)
+            created_timetables.append(t)
+
+        # Clean up
+        await self.repo.delete_drafts_by_task(task_id)
+        await self.repo.delete_task(task_id)
+
+        return {
+            "message": f"Successfully applied {len(created_timetables)} timetable entries."
+        }
+
+    async def delete_generation_task(self, task_id: int) -> dict:
+        task = await self.get_generation_task(task_id)
+        await self.repo.delete_drafts_by_task(task_id)
+        await self.repo.delete_task(task_id)
+        return {"message": "Task and associated drafts deleted"}

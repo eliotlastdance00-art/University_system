@@ -134,6 +134,29 @@ CREATE TABLE IF NOT EXISTS timetable (
     FOREIGN KEY (subject_assignment_id) REFERENCES subject_assignments(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS timetable_generation_tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    status ENUM('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED') NOT NULL DEFAULT 'PENDING',
+    parameters JSON,
+    error_message TEXT,
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS timetable_drafts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    task_id INT NOT NULL,
+    assignment_id INT NOT NULL,
+    day VARCHAR(20) NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    room VARCHAR(50),
+    FOREIGN KEY (task_id) REFERENCES timetable_generation_tasks(id) ON DELETE CASCADE,
+    FOREIGN KEY (assignment_id) REFERENCES subject_assignments(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS lessons (
     id INT AUTO_INCREMENT PRIMARY KEY,
     timetable_id INT NOT NULL,

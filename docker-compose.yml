@@ -55,5 +55,36 @@ services:
       retries: 5
       start_period: 30s
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis_queue
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: Docker/backend.Dockerfile
+    container_name: background_worker
+    restart: unless-stopped
+    command: arq app.worker.WorkerSettings
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      redis:
+        condition: service_healthy
+      Database:
+        condition: service_healthy
+    volumes:
+      - ./app:/code/app
+
 volumes:
   db_data:

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     # ─── Firebase (optional — gracefully skipped if absent) ─
     FIREBASE_CREDENTIALS_PATH: str | None = None
 
+    # ─── Redis / Queue ──────────────────────────────────────
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+
     # ─── Application ────────────────────────────────────────
     APP_NAME: str = "University System"
     APP_VERSION: str = "2.0.0"

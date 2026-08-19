@@ -10,6 +10,9 @@ from app.academic.timetable.schemas import (
     TimetableEnum,
     TimetableResponse,
     TimetableUpdate,
+    TimetableTaskCreate,
+    TimetableTaskResponse,
+    TimetableDraftResponse,
 )
 from app.academic.timetable.service import TimetableService
 from app.core.database import get_db
@@ -154,3 +157,90 @@ async def delete_timetable(
 ) -> dict:
     service = TimetableService(conn)
     return await service.delete(id)
+
+
+# ─── GENERATION TASKS ──────────────────────────────────────
+
+
+@router.post(
+    "/tasks/generate",
+    response_model=TimetableTaskResponse,
+    summary="Start timetable generation task",
+    description="Starts an async worker task to generate the timetable",
+)
+async def generate_timetable(
+    data: TimetableTaskCreate,
+    current_user: CurrentUser,
+    conn: DbConnection,
+) -> dict:
+    service = TimetableService(conn)
+    return await service.create_generation_task(
+        actor_id=get_user_id(current_user), parameters=data.parameters or {}
+    )
+
+
+@router.get(
+    "/tasks",
+    response_model=list[TimetableTaskResponse],
+    summary="Get all generation tasks",
+)
+async def get_all_tasks(
+    current_user: CurrentUser,
+    conn: DbConnection,
+) -> list[dict]:
+    service = TimetableService(conn)
+    return await service.get_generation_tasks()
+
+
+@router.get(
+    "/tasks/{task_id}",
+    response_model=TimetableTaskResponse,
+    summary="Get task status",
+)
+async def get_task_status(
+    task_id: int,
+    current_user: CurrentUser,
+    conn: DbConnection,
+) -> dict:
+    service = TimetableService(conn)
+    return await service.get_generation_task(task_id)
+
+
+@router.get(
+    "/tasks/{task_id}/drafts",
+    response_model=list[TimetableDraftResponse],
+    summary="Get drafts for a task",
+)
+async def get_task_drafts(
+    task_id: int,
+    current_user: CurrentUser,
+    conn: DbConnection,
+) -> list[dict]:
+    service = TimetableService(conn)
+    return await service.get_task_drafts(task_id)
+
+
+@router.post(
+    "/tasks/{task_id}/apply",
+    summary="Apply task drafts to timetable",
+)
+async def apply_task_drafts(
+    task_id: int,
+    current_user: CurrentUser,
+    conn: DbConnection,
+) -> dict:
+    service = TimetableService(conn)
+    return await service.apply_task_drafts(task_id, actor_id=get_user_id(current_user))
+
+
+@router.delete(
+    "/tasks/{task_id}",
+    summary="Delete task and drafts",
+)
+async def delete_task_and_drafts(
+    task_id: int,
+    current_user: CurrentUser,
+    conn: DbConnection,
+) -> dict:
+    service = TimetableService(conn)
+    return await service.delete_generation_task(task_id)

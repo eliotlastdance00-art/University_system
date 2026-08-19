@@ -102,3 +102,37 @@ class GroupResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     teacher_name: str
     group_name: str
+
+
+# ─── TASKS & DRAFTS ─────────────────────────────
+
+
+class TaskStatus(str, Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class TimetableTaskCreate(BaseModel):
+    parameters: dict | None = Field(
+        default_factory=dict,
+        description="Generation parameters like department_id, academic_year_id",
+    )
+
+
+class TimetableTaskResponse(BaseModel):
+    id: int
+    status: TaskStatus
+    parameters: dict | None = None
+    error_message: str | None = None
+    created_by: int | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TimetableDraftResponse(TimetableBase):
+    id: int
+    task_id: int
+
+    model_config = ConfigDict(from_attributes=True)
