@@ -18,6 +18,7 @@ from starlette.middleware.cors import CORSMiddleware
 # ─── Router imports ─────────────────────────────────────────
 from app.academic.academic_years.router import router as academic_year_router
 from app.academic.assignments.router import router as assignment_router
+from app.academic.attendance.qr.router import router as qr_attendance_router
 from app.academic.attendance.router import router as attendance_router
 from app.academic.cohorts.router import router as cohort_router
 from app.academic.grades.router import router as grade_router
@@ -122,6 +123,9 @@ app.include_router(timetable_router, prefix=f"{PREFIX}/timetables", tags=["Timet
 app.include_router(lesson_router, prefix=f"{PREFIX}/lessons", tags=["Lessons"])
 app.include_router(
     attendance_router, prefix=f"{PREFIX}/attendance", tags=["Attendance"]
+)
+app.include_router(
+    qr_attendance_router, prefix=f"{PREFIX}/attendance/qr", tags=["QR Attendance"]
 )
 app.include_router(
     academic_year_router, prefix=f"{PREFIX}/academic_years", tags=["Academic Years"]

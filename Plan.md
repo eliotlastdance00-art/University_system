@@ -1,4 +1,4 @@
-1. Attendance + QR-y gutarmaly (dowam edýän zat)Eýýäm başlan zadyň — muny doly gutar, sebäbi bu iň konkret, derrew görünýän gymmaty bolan feature. Session-esasly, wagt bilen çäklenen QR + verify endpoint.
+1. Attendance + QR-y gutarmaly (dowam edýän zat)Eýýäm başlan zadyň — muny doly gutar, sebäbi bu iň konkret, derrew görünýän gymmaty bolan feature. 
 2. Community/engagement gatlagy — habarlar + chat/topar + Moderator rolyPul soramazdan öň ilki "gaýdyp gelere sebäp" gerek. Habarlar bölümi bilen chat toparlaryny we Moderator rolyny şu tapgyrda gur — sebäbi galan zatlaryň (ýaryş, leaderboard) hemmesi şu infrastrukturanyň üstünde işlär.
 3. Gamification — leaderboard/ball sistemasyEngagement bar bolansoň manysy bar zat. Dowamat, chat-daky işjeňlik, ýaryş netijeleri — bulardan ball ýygnalýar, top-list görkezilýär.
 4. Ýaryşlar (mugt wersiýa bilen başla)Kompýuter/CTF, diller, himiýa-biologiýa, fizika — ilki mugt synag hökmünde çykar (submission + leaderboard infrastrukturasy şu ýerde synalýar). Töleg goşmak indiki tapgyrda.

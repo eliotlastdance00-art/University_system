@@ -18,3 +18,11 @@ export const getGroupStats     = (sectionId)       => client.get(`/attendance/gr
 
 // GET "/my/stats" — student kendi attendance statsını JWT token'dan çeker (user.sub kullanılır backend'de)
 export const getMyAttendanceStats  = ()            => client.get('/attendance/my/stats');
+
+// ─── QR ATTENDANCE ──────────────────────────────────────
+
+export const startQrSession    = (lessonId) => client.post(`/attendance/qr/session/start/${lessonId}`);
+export const refreshQrToken    = (sessionId) => client.get(`/attendance/qr/session/${sessionId}/refresh`);
+export const closeQrSession    = (sessionId) => client.post(`/attendance/qr/session/${sessionId}/close`);
+export const getQrLiveScans    = (sessionId) => client.get(`/attendance/qr/session/${sessionId}/live`);
+export const verifyQrCode      = (data)      => client.post(`/attendance/qr/verify`, data);
