@@ -406,16 +406,30 @@ const TasksTab = ({ showToast }) => {
   const [viewDraftsTask, setViewDraftsTask] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (isPolling = false) => {
+    if (!isPolling) setLoading(true);
     try {
       const res = await getGenerationTasks();
       setTasks(res.data);
-    } catch { showToast('Failed to load tasks', 'error'); }
-    setLoading(false);
+    } catch { 
+      if (!isPolling) showToast('Failed to load tasks', 'error'); 
+    }
+    if (!isPolling) setLoading(false);
   }, [showToast]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Polling for active tasks
+  useEffect(() => {
+    const hasActiveTasks = tasks.some(t => t.status === 'PENDING' || t.status === 'PROCESSING');
+    if (!hasActiveTasks) return;
+
+    const interval = setInterval(() => {
+      load(true);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [tasks, load]);
 
   const handleGenerate = async () => {
     setActionLoading(true);
@@ -479,23 +493,44 @@ const TasksTab = ({ showToast }) => {
             <thead>
               <tr>
                 <th>Task ID</th>
-                <th>Status</th>
+                <th style={{ minWidth: 250 }}>Status</th>
                 <th>Created At</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {tasks.map(t => (
+              {tasks.map(t => {
+                const isActive = t.status === 'PENDING' || t.status === 'PROCESSING';
+                return (
                 <tr key={t.id}>
                   <td style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>#{t.id}</td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {t.status === 'PROCESSING' && <span className="spinner" style={{ width: 12, height: 12 }} />}
-                      <span className={`badge ${t.status === 'COMPLETED' ? 'badge-success' : t.status === 'FAILED' ? 'badge-error' : 'badge-warning'}`}>
-                        {t.status}
-                      </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className={`badge ${t.status === 'COMPLETED' ? 'badge-success' : t.status === 'FAILED' ? 'badge-error' : 'badge-warning'}`}>
+                          {t.status}
+                        </span>
+                        {isActive && (
+                          <span className="text-muted" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <RefreshCw size={12} style={{ animation: 'spin 2s linear infinite' }} /> 
+                            {t.status === 'PENDING' ? 'Waiting in queue...' : 'Solver is running...'}
+                          </span>
+                        )}
+                      </div>
+                      {isActive && (
+                        <div style={{ width: '100%', maxWidth: 200, height: 4, background: 'var(--border-subtle)', borderRadius: 2, overflow: 'hidden', marginTop: 4 }}>
+                          <div 
+                            style={{ 
+                              height: '100%', 
+                              background: 'var(--primary)', 
+                              width: '50%',
+                              animation: 'indeterminate-progress 1.5s infinite linear' 
+                            }} 
+                          />
+                        </div>
+                      )}
+                      {t.error_message && <div style={{ fontSize: '12px', color: 'var(--error)', marginTop: 4, maxWidth: 400 }}>{t.error_message}</div>}
                     </div>
-                    {t.error_message && <div style={{ fontSize: '12px', color: 'var(--error)', marginTop: 4, maxWidth: 400 }}>{t.error_message}</div>}
                   </td>
                   <td>{new Date(t.created_at).toLocaleString()}</td>
                   <td>
@@ -505,13 +540,13 @@ const TasksTab = ({ showToast }) => {
                           Review & Apply
                         </button>
                       )}
-                      <button className="btn btn-ghost btn-sm btn-icon" style={{ color: 'var(--error)' }} onClick={() => setConfirmDelete(t.id)} title="Delete Task">
+                      <button className="btn btn-ghost btn-sm btn-icon" style={{ color: 'var(--error)' }} onClick={() => setConfirmDelete(t.id)} title="Delete Task" disabled={isActive}>
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
               {tasks.length === 0 && (
                 <tr>
                   <td colSpan={4}>

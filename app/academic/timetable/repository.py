@@ -350,6 +350,7 @@ class TimetableRepository(BaseRepository):
         return task
 
     async def get_task(self, task_id: int) -> dict | None:
+        import json
         async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
@@ -359,9 +360,16 @@ class TimetableRepository(BaseRepository):
                 """,
                 (task_id,)
             )
-            return await cur.fetchone()
+            row = await cur.fetchone()
+            if row and isinstance(row.get("parameters"), str):
+                try:
+                    row["parameters"] = json.loads(row["parameters"])
+                except Exception:
+                    row["parameters"] = {}
+            return row
 
     async def get_all_tasks(self) -> list[dict]:
+        import json
         async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
@@ -370,7 +378,14 @@ class TimetableRepository(BaseRepository):
                     ORDER BY created_at DESC
                 """
             )
-            return await cur.fetchall()
+            rows = await cur.fetchall()
+            for row in rows:
+                if isinstance(row.get("parameters"), str):
+                    try:
+                        row["parameters"] = json.loads(row["parameters"])
+                    except Exception:
+                        row["parameters"] = {}
+            return rows
 
     async def update_task_status(self, task_id: int, status: str, error_message: str | None = None) -> None:
         async with self.conn.cursor(DictCursor) as cur:

@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '../utils/token';
 
-// Use the Vite proxy (/api → http://127.0.0.1:8000/University_system/v1) so that
+// Use the Vite proxy (/University_system/v1 → http://127.0.0.1:8000/University_system/v1) so that
 // requests from any network client are forwarded server-side by Vite.
 // Override with VITE_API_URL in .env.local for production builds.
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/University_system/v1';
 
 const client = axios.create({
   baseURL: API_BASE,
