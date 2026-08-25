@@ -232,22 +232,25 @@ class TimetableService:
 
         created_timetables = []
         for d in drafts:
-            # We must convert times back to strings or time objects properly for TimetableCreate
-            from datetime import datetime, timezone
+            from datetime import datetime, timedelta
 
-            # Start and end time from DB could be timedelta or string, we assume string 'HH:MM:SS' here
-            # TimetableCreate expects datetime.time
-            fmt = "%H:%M:%S"
-            st = (
-                datetime.strptime(d["start_time"], fmt).replace(tzinfo=timezone.utc).time()
-                if isinstance(d["start_time"], str)
-                else d["start_time"]
-            )
-            et = (
-                datetime.strptime(d["end_time"], fmt).replace(tzinfo=timezone.utc).time()
-                if isinstance(d["end_time"], str)
-                else d["end_time"]
-            )
+            def _to_time(val):
+                """Convert DB value (str, timedelta, or time) to datetime.time."""
+                if isinstance(val, timedelta):
+                    total_seconds = int(val.total_seconds())
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
+                    seconds = total_seconds % 60
+                    return time(hours, minutes, seconds)
+                if isinstance(val, str):
+                    from datetime import timezone
+                    fmt = "%H:%M:%S"
+                    return datetime.strptime(val, fmt).replace(tzinfo=timezone.utc).time()
+                # Already a time object
+                return val
+
+            st = _to_time(d["start_time"])
+            et = _to_time(d["end_time"])
 
             data = TimetableCreate(
                 assignment_id=d["assignment_id"],
@@ -307,7 +310,9 @@ class TimetableService:
         )
         return room
 
-    async def update_room(self, room_id: int, data: RoomUpdate, actor_id: int | None = None) -> dict:
+    async def update_room(
+        self, room_id: int, data: RoomUpdate, actor_id: int | None = None
+    ) -> dict:
         current = await self.get_room(room_id)
         kwargs = {}
         if data.name is not None:
@@ -324,6 +329,10 @@ class TimetableService:
             kwargs["is_active"] = data.is_active
 
         updated = await self.repo.update_room(room_id, **kwargs)
+        if not updated:
+            from app.core.exceptions import AppError
+            raise AppError("Room could not be fetched after update")
+
         await self.audit.log(
             actor_id=actor_id,
             action=AuditAction.UPDATE,
@@ -339,6 +348,7 @@ class TimetableService:
         deleted = await self.repo.delete_room(room_id)
         if not deleted:
             from app.core.exceptions import AppError
+
             raise AppError("Failed to delete room")
         await self.audit.log(
             actor_id=actor_id,
@@ -364,14 +374,20 @@ class TimetableService:
     async def get_teacher_availability(self, user_id: int) -> list[dict]:
         return await self.repo.get_teacher_availabilities(user_id)
 
-    async def set_teacher_availability(self, user_id: int, day: str, slot_number: int) -> dict:
+    async def set_teacher_availability(
+        self, user_id: int, day: str, slot_number: int
+    ) -> dict:
         return await self.repo.set_teacher_availability(user_id, day, slot_number)
 
-    async def bulk_set_teacher_availability(self, user_id: int, entries: list[dict]) -> dict:
+    async def bulk_set_teacher_availability(
+        self, user_id: int, entries: list[dict]
+    ) -> dict:
         count = await self.repo.bulk_set_teacher_availability(user_id, entries)
         return {"message": f"Set {count} availability slots for teacher {user_id}"}
 
-    async def delete_teacher_availability(self, user_id: int, day: str | None = None) -> dict:
+    async def delete_teacher_availability(
+        self, user_id: int, day: str | None = None
+    ) -> dict:
         count = await self.repo.delete_teacher_availability(user_id, day)
         return {"message": f"Deleted {count} availability entries"}
 
@@ -379,9 +395,16 @@ class TimetableService:
     # LECTURE GROUPS
     # ═══════════════════════════════════════════════════════════
 
-    async def create_lecture_group(self, name: str, subject_id: int,
-                                  semester: str | None, assignment_ids: list[int]) -> dict:
-        return await self.repo.create_lecture_group(name, subject_id, semester, assignment_ids)
+    async def create_lecture_group(
+        self,
+        name: str,
+        subject_id: int,
+        semester: str | None,
+        assignment_ids: list[int],
+    ) -> dict:
+        return await self.repo.create_lecture_group(
+            name, subject_id, semester, assignment_ids
+        )
 
     async def get_all_lecture_groups(self) -> list[dict]:
         return await self.repo.get_all_lecture_groups()
@@ -390,6 +413,7 @@ class TimetableService:
         group = await self.repo.get_lecture_group(group_id)
         if not group:
             from app.core.exceptions import NotFoundError
+
             raise NotFoundError("Lecture group not found")
         return group
 

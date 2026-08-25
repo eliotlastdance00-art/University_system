@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   getRooms, createRoom, updateRoom, deleteRoom,
   getAvailability, bulkSetAvailability, getTimeSlots,
-  getGenerationTasks, generateTimetable, getTaskDrafts, applyTaskDrafts, deleteGenerationTask
+  getGenerationTasks, generateTimetable, getTaskDrafts, applyTaskDrafts, deleteGenerationTask,
+  getAllTimetables, updateTimetable, deleteTimetable
 } from '../../api/timetables';
 import { searchUsers } from '../../api/users';
 import {
   Calendar, Building, Users, Play, Plus, X, Trash2, CheckCircle, Clock, Save, 
-  Check, RefreshCw, AlertTriangle, Search, ChevronRight
+  Check, RefreshCw, AlertTriangle, Search, ChevronRight, Edit2, Layout, Settings
 } from 'lucide-react';
 
 // ────────────────────────────────────────────────────────────
@@ -56,6 +57,208 @@ const ConfirmModal = ({ open, onClose, onConfirm, title, message, actionText = '
 };
 
 // ────────────────────────────────────────────────────────────
+// Tab: Published Timetable (Manual Edit)
+// ────────────────────────────────────────────────────────────
+const PublishedTab = ({ showToast }) => {
+  const [timetables, setTimetables] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [res, roomRes] = await Promise.all([
+        getAllTimetables().catch(() => ({ data: [] })),
+        getRooms().catch(() => ({ data: [] }))
+      ]);
+      setTimetables(res.data);
+      setRooms(roomRes.data);
+    } catch { 
+      showToast('Failed to load published timetable', 'error'); 
+    }
+    setLoading(false);
+  }, [showToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    setActionLoading(true);
+    try {
+      // Find room to also update string room name
+      const roomObj = rooms.find(r => String(r.id) === String(editTarget.room_id));
+      const payload = {
+        day: editTarget.day,
+        start_time: editTarget.start_time,
+        end_time: editTarget.end_time,
+        room_id: editTarget.room_id ? Number(editTarget.room_id) : null,
+        room: roomObj ? roomObj.name : editTarget.room
+      };
+      await updateTimetable(editTarget.id, payload);
+      showToast('Timetable updated successfully');
+      setEditTarget(null);
+      load();
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Error updating timetable', 'error');
+    }
+    setActionLoading(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setActionLoading(true);
+    try {
+      await deleteTimetable(deleteTarget.id);
+      showToast('Timetable entry deleted');
+      setDeleteTarget(null);
+      load();
+    } catch {
+      showToast('Error deleting entry', 'error');
+    }
+    setActionLoading(false);
+  };
+
+  const filtered = timetables.filter(t => 
+    t.subject_name.toLowerCase().includes(search.toLowerCase()) ||
+    t.teacher_name.toLowerCase().includes(search.toLowerCase()) ||
+    String(t.section_number).includes(search)
+  );
+
+  return (
+    <div className="tab-pane fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+        <div>
+          <h3 style={{ marginBottom: 4 }}>Published Timetable</h3>
+          <p className="text-muted" style={{ fontSize: 'var(--font-sm)' }}>Manually view and edit the active timetable.</p>
+        </div>
+        <div style={{ position: 'relative', width: 250 }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input 
+            className="form-input" placeholder="Search subject, teacher..." 
+            value={search} onChange={e => setSearch(e.target.value)}
+            style={{ paddingLeft: 32, fontSize: 'var(--font-sm)' }}
+          />
+        </div>
+      </div>
+
+      {loading ? <div className="spinner" style={{ margin: '40px auto' }} /> : (
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Day & Time</th>
+                <th>Subject & Section</th>
+                <th>Teacher</th>
+                <th>Room</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(t => (
+                <tr key={t.id}>
+                  <td>
+                    <strong style={{ textTransform: 'capitalize' }}>{t.day}</strong><br/>
+                    <small className="text-muted">{t.start_time.substring(0,5)} - {t.end_time.substring(0,5)}</small>
+                  </td>
+                  <td>
+                    <strong>{t.subject_name}</strong><br/>
+                    <span className="badge badge-secondary" style={{ fontSize: 10 }}>Sec: {t.section_number}</span>
+                  </td>
+                  <td>{t.teacher_name}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Building size={14} className="text-muted" /> {t.room || 'TBD'}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                      <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setEditTarget({...t})} title="Edit">
+                        <Edit2 size={16} />
+                      </button>
+                      <button className="btn btn-ghost btn-sm btn-icon" style={{ color: 'var(--error)' }} onClick={() => setDeleteTarget(t)} title="Delete">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={5}>
+                    <div className="empty-state">
+                      <Layout size={40} className="empty-state-icon" />
+                      <h4 className="empty-state-title">No timetable entries found</h4>
+                      <p className="empty-state-text">Use the Auto Scheduler to generate a new timetable.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit Timetable Entry">
+        <form onSubmit={handleUpdate}>
+          <div className="modal-body">
+            <div style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-3)', background: 'var(--bg-body)', borderRadius: 'var(--radius-md)' }}>
+              <strong>{editTarget?.subject_name}</strong> (Section {editTarget?.section_number})<br/>
+              <small className="text-muted">{editTarget?.teacher_name}</small>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="form-label">Day</label>
+                <select className="form-select" value={editTarget?.day || ''} onChange={e => setEditTarget({...editTarget, day: e.target.value})}>
+                  {days.map(d => <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Start Time</label>
+                <input required type="time" className="form-input" value={editTarget?.start_time || ''} onChange={e => setEditTarget({...editTarget, start_time: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">End Time</label>
+                <input required type="time" className="form-input" value={editTarget?.end_time || ''} onChange={e => setEditTarget({...editTarget, end_time: e.target.value})} />
+              </div>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="form-label">Room</label>
+                <select className="form-select" value={editTarget?.room_id || ''} onChange={e => setEditTarget({...editTarget, room_id: e.target.value})}>
+                  <option value="">-- Select Room --</option>
+                  {rooms.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} (Cap: {r.capacity})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={() => setEditTarget(null)}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={actionLoading}>
+              {actionLoading ? <span className="spinner" style={{width: 16, height: 16}} /> : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmModal 
+        open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} loading={actionLoading}
+        title="Delete Entry" message={`Are you sure you want to delete this class slot?`}
+        variant="danger" actionText="Delete"
+      />
+    </div>
+  );
+};
+
+// ────────────────────────────────────────────────────────────
 // Tab: Rooms
 // ────────────────────────────────────────────────────────────
 const RoomsTab = ({ showToast }) => {
@@ -64,7 +267,7 @@ const RoomsTab = ({ showToast }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [form, setForm] = useState({ name: '', capacity: 30, room_type: 'NORMAL', building: '', floor: 1, is_active: true });
+  const [form, setForm] = useState({ id: null, name: '', capacity: 30, room_type: 'NORMAL', building: '', floor: 1, is_active: true });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,16 +280,30 @@ const RoomsTab = ({ showToast }) => {
 
   useEffect(() => { load(); }, [load]);
 
+  const openNew = () => {
+    setForm({ id: null, name: '', capacity: 30, room_type: 'NORMAL', building: '', floor: 1, is_active: true });
+    setModalOpen(true);
+  };
+
+  const openEdit = (room) => {
+    setForm({ ...room });
+    setModalOpen(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setActionLoading(true);
     try {
-      await createRoom(form);
-      showToast('Room created successfully');
+      if (form.id) {
+        await updateRoom(form.id, form);
+        showToast('Room updated successfully');
+      } else {
+        await createRoom(form);
+        showToast('Room created successfully');
+      }
       setModalOpen(false);
       load();
-      setForm({ name: '', capacity: 30, room_type: 'NORMAL', building: '', floor: 1, is_active: true });
-    } catch { showToast('Error creating room', 'error'); }
+    } catch { showToast('Error saving room', 'error'); }
     setActionLoading(false);
   };
 
@@ -108,7 +325,7 @@ const RoomsTab = ({ showToast }) => {
           <h3 style={{ marginBottom: 4 }}>Classrooms & Labs</h3>
           <p className="text-muted" style={{ fontSize: 'var(--font-sm)' }}>Manage physical spaces and their capacities.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
+        <button className="btn btn-primary" onClick={openNew}>
           <Plus size={16} /> Add Room
         </button>
       </div>
@@ -132,8 +349,8 @@ const RoomsTab = ({ showToast }) => {
                   <td>{r.capacity} <span className="text-muted" style={{fontSize:12}}>seats</span></td>
                   <td>
                     <span className="badge" style={{
-                      background: r.room_type.includes('LAB') ? 'var(--info-bg)' : 'var(--bg-card)',
-                      color: r.room_type.includes('LAB') ? 'var(--info)' : 'var(--text-primary)',
+                      background: r.room_type.includes('LAB') || r.room_type.includes('STUDIO') ? 'var(--info-bg)' : 'var(--bg-card)',
+                      color: r.room_type.includes('LAB') || r.room_type.includes('STUDIO') ? 'var(--info)' : 'var(--text-primary)',
                       border: '1px solid var(--border-subtle)'
                     }}>
                       {r.room_type.replace('_', ' ')}
@@ -146,7 +363,10 @@ const RoomsTab = ({ showToast }) => {
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                      <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(r)} title="Edit Room">
+                        <Edit2 size={16} />
+                      </button>
                       <button className="btn btn-ghost btn-sm btn-icon" style={{ color: 'var(--error)' }} onClick={() => setDeleteTarget(r)} title="Delete Room">
                         <Trash2 size={16} />
                       </button>
@@ -170,7 +390,7 @@ const RoomsTab = ({ showToast }) => {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add New Room">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={form.id ? "Edit Room" : "Add New Room"}>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
@@ -392,12 +612,13 @@ const AvailabilityTab = ({ showToast }) => {
 };
 
 // ────────────────────────────────────────────────────────────
-// Tab: Tasks & Generator
+// Tab: Tasks & Auto Scheduler
 // ────────────────────────────────────────────────────────────
 const TasksTab = ({ showToast }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [drafts, setDrafts] = useState([]);
+  const [progressStage, setProgressStage] = useState(0);
   
   // Modals
   const [confirmGenerate, setConfirmGenerate] = useState(false);
@@ -426,6 +647,7 @@ const TasksTab = ({ showToast }) => {
 
     const interval = setInterval(() => {
       load(true);
+      setProgressStage(p => (p + 1) % 4);
     }, 2000);
 
     return () => clearInterval(interval);
@@ -435,7 +657,7 @@ const TasksTab = ({ showToast }) => {
     setActionLoading(true);
     try {
       await generateTimetable({ parameters: {} });
-      showToast('AI Generation started in the background!');
+      showToast('Auto Scheduler started in the background!');
       setConfirmGenerate(false);
       load();
     } catch(err) { showToast(err.response?.data?.detail || 'Error', 'error'); }
@@ -475,15 +697,17 @@ const TasksTab = ({ showToast }) => {
     } catch { showToast('Could not load drafts', 'error'); }
   };
 
+  const progressTexts = ["Initializing Worker...", "Loading constraints and rooms...", "Running CSP optimization...", "Finalizing schedule..."];
+
   return (
     <div className="tab-pane fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
         <div>
-          <h3 style={{ marginBottom: 4 }}>Generation Tasks (CSP Engine)</h3>
-          <p className="text-muted" style={{ fontSize: 'var(--font-sm)' }}>Run the AI constraint solver to generate conflict-free timetables.</p>
+          <h3 style={{ marginBottom: 4 }}>Auto Scheduler Tasks</h3>
+          <p className="text-muted" style={{ fontSize: 'var(--font-sm)' }}>Run the constraint solver to generate conflict-free timetables.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setConfirmGenerate(true)}>
-          <Play size={16} fill="currentColor" /> Run Auto-Generator
+          <Play size={16} fill="currentColor" /> Run Scheduler
         </button>
       </div>
       
@@ -493,7 +717,7 @@ const TasksTab = ({ showToast }) => {
             <thead>
               <tr>
                 <th>Task ID</th>
-                <th style={{ minWidth: 250 }}>Status</th>
+                <th style={{ minWidth: 300 }}>Status & Progress</th>
                 <th>Created At</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
@@ -513,18 +737,18 @@ const TasksTab = ({ showToast }) => {
                         {isActive && (
                           <span className="text-muted" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
                             <RefreshCw size={12} style={{ animation: 'spin 2s linear infinite' }} /> 
-                            {t.status === 'PENDING' ? 'Waiting in queue...' : 'Solver is running...'}
+                            {t.status === 'PENDING' ? 'Waiting in queue...' : progressTexts[progressStage]}
                           </span>
                         )}
                       </div>
                       {isActive && (
-                        <div style={{ width: '100%', maxWidth: 200, height: 4, background: 'var(--border-subtle)', borderRadius: 2, overflow: 'hidden', marginTop: 4 }}>
+                        <div style={{ width: '100%', maxWidth: 250, height: 6, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden', marginTop: 4 }}>
                           <div 
                             style={{ 
                               height: '100%', 
                               background: 'var(--primary)', 
-                              width: '50%',
-                              animation: 'indeterminate-progress 1.5s infinite linear' 
+                              width: `${25 + (progressStage * 25)}%`,
+                              transition: 'width 1s ease-in-out'
                             }} 
                           />
                         </div>
@@ -552,8 +776,8 @@ const TasksTab = ({ showToast }) => {
                   <td colSpan={4}>
                     <div className="empty-state">
                       <Calendar size={40} className="empty-state-icon" />
-                      <h4 className="empty-state-title">No generator tasks</h4>
-                      <p className="empty-state-text">Click "Run Auto-Generator" to create a new timetable draft.</p>
+                      <h4 className="empty-state-title">No scheduler tasks</h4>
+                      <p className="empty-state-text">Click "Run Scheduler" to create a new timetable draft.</p>
                     </div>
                   </td>
                 </tr>
@@ -609,7 +833,7 @@ const TasksTab = ({ showToast }) => {
       {/* Confirmations */}
       <ConfirmModal 
         open={confirmGenerate} onClose={() => setConfirmGenerate(false)} onConfirm={handleGenerate} loading={actionLoading}
-        title="Start AI Generation?" message="This will analyze all constraints, rooms, and availability to build a fresh timetable in the background." actionText="Start Generation"
+        title="Start Auto Scheduler?" message="This will analyze all constraints, rooms, and availability to build a fresh timetable in the background." actionText="Start Scheduler"
       />
       <ConfirmModal 
         open={!!confirmApply} onClose={() => setConfirmApply(null)} onConfirm={handleApply} loading={actionLoading}
@@ -617,7 +841,7 @@ const TasksTab = ({ showToast }) => {
       />
       <ConfirmModal 
         open={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={handleDelete} loading={actionLoading}
-        title="Delete Task?" message="Are you sure you want to delete this generation task and its drafts?" actionText="Delete" variant="danger"
+        title="Delete Task?" message="Are you sure you want to delete this task and its drafts?" actionText="Delete" variant="danger"
       />
     </div>
   );
@@ -627,7 +851,7 @@ const TasksTab = ({ showToast }) => {
 // Main Component
 // ────────────────────────────────────────────────────────────
 const AdminTimetablePage = () => {
-  const [activeTab, setActiveTab] = useState('tasks');
+  const [activeTab, setActiveTab] = useState('published');
   const [toast, setToast] = useState(null);
 
   const showToast = useCallback((message, type = 'success') => {
@@ -636,7 +860,8 @@ const AdminTimetablePage = () => {
   }, []);
 
   const TABS = [
-    { id: 'tasks', label: 'AI Generator', icon: <Play size={16}/> },
+    { id: 'published', label: 'Published Timetable', icon: <Layout size={16}/> },
+    { id: 'tasks', label: 'Auto Scheduler', icon: <Play size={16}/> },
     { id: 'rooms', label: 'Rooms & Labs', icon: <Building size={16}/> },
     { id: 'availability', label: 'Teacher Availability', icon: <Clock size={16}/> },
   ];
@@ -652,7 +877,7 @@ const AdminTimetablePage = () => {
       <div className="page-header">
         <div>
           <h1 className="page-title">Advanced Timetable Management</h1>
-          <p className="page-subtitle">Manage physical spaces, teacher schedules, and auto-generate timetables.</p>
+          <p className="page-subtitle">Manage physical spaces, teacher schedules, and auto-generate or manually edit timetables.</p>
         </div>
       </div>
 
@@ -677,6 +902,7 @@ const AdminTimetablePage = () => {
         </div>
         
         <div style={{ padding: 'var(--space-5)' }}>
+          {activeTab === 'published' && <PublishedTab showToast={showToast} />}
           {activeTab === 'tasks' && <TasksTab showToast={showToast} />}
           {activeTab === 'rooms' && <RoomsTab showToast={showToast} />}
           {activeTab === 'availability' && <AvailabilityTab showToast={showToast} />}
