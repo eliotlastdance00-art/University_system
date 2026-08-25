@@ -266,7 +266,7 @@ async def delete_task_and_drafts(
 async def get_rooms(
     current_user: CurrentUser,
     conn: DbConnection,
-    active_only: bool = Query(False, description="Filter only active rooms"),  # noqa: B008
+    active_only: bool = Query(False, description="Filter only active rooms"),
 ) -> list[dict]:
     service = TimetableService(conn)
     return await service.get_all_rooms(active_only=active_only)
@@ -400,7 +400,7 @@ async def delete_teacher_availability(
     user_id: int,
     current_user: CurrentUser,
     conn: DbConnection,
-    day: TimetableEnum | None = Query(None, description="Specific day to delete, or all if omitted"),
+    day: TimetableEnum | None = Query(None, description="Specific day to delete, or all if omitted"),  # noqa: B008
 ) -> dict:
     service = TimetableService(conn)
     return await service.delete_teacher_availability(user_id, day.value if day else None)

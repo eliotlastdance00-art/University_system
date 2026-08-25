@@ -1,9 +1,10 @@
-import React from 'react';
-import { CheckCircle, XCircle, Activity, UserCheck, UserX, Calendar, Clock, BookOpen, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle, XCircle, Activity, UserCheck, UserX, Calendar, Clock, BookOpen, AlertCircle, QrCode, X } from 'lucide-react';
 import { getMyProfile } from '../../api/profile';
 import { getMyAttendanceStats, getAttendanceByStudent } from '../../api/attendance';
 import useFetch from '../../utils/useFetch';
 import PageShell from '../../components/PageShell';
+import QrScanner from '../../components/QrScanner';
 
 const StatCard = ({ title, value, icon, color }) => (
   <div className="glass-card stat-card" style={{ padding: 'var(--space-5)', borderTop: `2px solid ${color.split(',')[1] || color}` }}>
@@ -20,15 +21,17 @@ const StatCard = ({ title, value, icon, color }) => (
 );
 
 const AttendancePage = () => {
+  const [showScanner, setShowScanner] = useState(false);
+
   const { data: profile, loading: pLoading, error: pError } = useFetch(() => getMyProfile(), []);
   const studentId = profile?.id ?? null;
 
-  const { data: stats, loading: sLoading, error: sError } = useFetch(
+  const { data: stats, loading: sLoading, error: sError, refetch: refetchStats } = useFetch(
     () => getMyAttendanceStats(),
     []
   );
 
-  const { data: records, loading: rLoading, error: rError } = useFetch(
+  const { data: records, loading: rLoading, error: rError, refetch: refetchRecords } = useFetch(
     () => studentId ? getAttendanceByStudent(studentId) : Promise.resolve({ data: [] }),
     [studentId]
   );
@@ -40,6 +43,13 @@ const AttendancePage = () => {
   const pct = stats?.attendance_percentage ?? 100;
   const isDanger = pct < 80;
 
+  const handleScanSuccess = () => {
+      // Reload stats and records after successful scan
+      refetchStats();
+      refetchRecords();
+      setTimeout(() => setShowScanner(false), 3000); // Close scanner after 3 seconds
+  };
+
   return (
     <PageShell loading={loading} error={error} skeletonCount={3}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -47,12 +57,18 @@ const AttendancePage = () => {
           <h1 className="page-title">My Attendance</h1>
           <p className="page-subtitle">Track your class participation</p>
         </div>
-        {isDanger && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-                <AlertCircle size={20} />
-                <span style={{ fontWeight: 600, fontSize: '14px' }}>Warning: Low Attendance</span>
-            </div>
-        )}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            {isDanger && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                    <AlertCircle size={20} />
+                    <span style={{ fontWeight: 600, fontSize: '14px' }}>Warning: Low Attendance</span>
+                </div>
+            )}
+            <button className="btn btn-primary" onClick={() => setShowScanner(true)} style={{ padding: '12px 20px', display: 'flex', gap: 8, fontSize: 15 }}>
+                <QrCode size={18} />
+                Scan QR Code
+            </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -168,6 +184,37 @@ const AttendancePage = () => {
           </div>
         )}
       </div>
+
+      {/* QR Scanner Modal Overlay */}
+      {showScanner && (
+          <div style={{
+              position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+              background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 9999, padding: 'var(--space-4)'
+          }}>
+              <div style={{
+                  background: 'var(--bg-primary)',
+                  width: '100%', maxWidth: 450,
+                  borderRadius: '24px',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                  overflow: 'hidden',
+                  position: 'relative'
+              }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border-color)' }}>
+                      <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <QrCode size={20} /> Mark Attendance
+                      </h3>
+                      <button onClick={() => setShowScanner(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                          <X size={24} />
+                      </button>
+                  </div>
+                  <div style={{ padding: '24px' }}>
+                      <QrScanner onScanSuccess={handleScanSuccess} />
+                  </div>
+              </div>
+          </div>
+      )}
     </PageShell>
   );
 };

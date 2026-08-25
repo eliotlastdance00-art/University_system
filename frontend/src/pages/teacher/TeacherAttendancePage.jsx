@@ -6,10 +6,11 @@ import {
 import { getMyLessonHistory } from '../../api/lessons';
 import useFetch from '../../utils/useFetch';
 import PageShell from '../../components/PageShell';
+import QrAttendancePanel from '../../components/QrAttendancePanel';
 import {
   Users, CheckCircle, XCircle, Clock, RefreshCw, Search,
   BarChart2, ChevronRight, ArrowLeft, Save, Activity,
-  UserCheck, UserX, AlertCircle, Calendar
+  UserCheck, UserX, AlertCircle, Calendar, QrCode, Edit3
 } from 'lucide-react';
 
 // ─── Status toggle button ─────────────────────────────────────
@@ -47,6 +48,8 @@ const AttendanceToggle = ({ status, onChange }) => (
 // ─── Attendance Sheet (after selecting a lesson) ──────────────
 const AttendanceSheet = ({ lesson, onBack }) => {
   const lessonId = lesson.id;
+  
+  const [activeTab, setActiveTab] = useState('qr'); // 'qr' or 'manual'
 
   const { data: students, loading: sLoading, error: sError } = useFetch(
     () => getLessonStudents(lessonId), [lessonId]
@@ -121,6 +124,16 @@ const AttendanceSheet = ({ lesson, onBack }) => {
     setTimeout(() => setSaveMsg(null), 3000);
   };
 
+  const handleQrClosed = async () => {
+      // When QR session closes, refresh the manual list
+      await refetchExisting();
+      await refetchStats();
+      // Re-initialize map
+      const map = {};
+      (existing || []).forEach(r => { map[r.student_id] = r.status; });
+      setAttendanceMap(map);
+  };
+
   const studs = Array.isArray(students) ? students : [];
   const filtered = studs.filter(s => {
     if (!search) return true;
@@ -163,109 +176,137 @@ const AttendanceSheet = ({ lesson, onBack }) => {
             </h3>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
               <span style={{ marginRight: 8 }}>{lesson.date || lesson.created_at?.slice(0,10)}</span>
-              {studs.length} students · {presentCount} present · {absentCount} absent
+              {studs.length} students enrolled
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <button className="btn btn-secondary" onClick={() => markAll('present')}>
-            <UserCheck size={14} /> Mark All Present
-          </button>
-          <button className="btn btn-secondary" onClick={() => markAll('absent')}>
-            <UserX size={14} /> Mark All Absent
-          </button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? <RefreshCw size={14} className="spin" /> : <Save size={14} />}
-            {saving ? 'Saving…' : 'Save Attendance'}
-          </button>
+        
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg-input)', padding: 4, borderRadius: 'var(--radius-lg)' }}>
+            <button 
+                className={`btn ${activeTab === 'qr' ? 'btn-primary' : 'btn-ghost'}`} 
+                style={{ padding: '6px 16px', borderRadius: 'var(--radius-md)', display: 'flex', gap: 8 }}
+                onClick={() => setActiveTab('qr')}
+            >
+                <QrCode size={16} /> QR Scan
+            </button>
+            <button 
+                className={`btn ${activeTab === 'manual' ? 'btn-primary' : 'btn-ghost'}`} 
+                style={{ padding: '6px 16px', borderRadius: 'var(--radius-md)', display: 'flex', gap: 8 }}
+                onClick={() => setActiveTab('manual')}
+            >
+                <Edit3 size={16} /> Manual
+            </button>
         </div>
       </div>
 
-      {/* Save message */}
-      {saveMsg && (
-        <div style={{
-          padding: '10px 16px', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)',
-          background: saveMsg.type === 'success' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-          color: saveMsg.type === 'success' ? '#10b981' : '#f87171',
-          fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          {saveMsg.type === 'success' ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
-          {saveMsg.text}
-        </div>
-      )}
-
-      {/* Stats mini bar */}
-      {!stLoading && stats && (
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)',
-          marginBottom: 'var(--space-4)',
-        }}>
-          {[
-            { label: 'Total',   value: stats.total_students ?? studs.length, color: '#6366f1' },
-            { label: 'Present', value: stats.total_present  ?? presentCount, color: '#10b981' },
-            { label: 'Absent',  value: stats.total_absent   ?? absentCount,  color: '#f87171' },
-          ].map(s => (
-            <div key={s.label} style={{
-              padding: 'var(--space-3)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Search */}
-      <div style={{ position: 'relative', marginBottom: 'var(--space-4)' }}>
-        <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-        <input
-          className="form-input"
-          placeholder="Search student…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ width: '100%', paddingLeft: 36 }}
-        />
-      </div>
-
-      {/* Student list */}
-      {filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--text-muted)' }}>No students found.</div>
+      {activeTab === 'qr' ? (
+          <div style={{ background: 'var(--bg-primary)', padding: 'var(--space-5)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
+              <QrAttendancePanel lessonId={lessonId} onClosed={handleQrClosed} />
+          </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-          {filtered.map((student, idx) => {
-            const sid    = student.student_id || student.id;
-            const status = attendanceMap[sid] || 'present';
-            const name   = `${student.first_name || ''} ${student.last_name || ''}`.trim() || `Student #${sid}`;
-            return (
-              <div key={sid} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: 'var(--space-3) var(--space-4)',
-                background: status === 'present' ? 'rgba(16,185,129,0.04)' : 'rgba(239,68,68,0.04)',
-                borderRadius: 'var(--radius-md)',
-                borderLeft: `3px solid ${status === 'present' ? '#10b981' : '#f87171'}`,
-                transition: 'background 0.2s',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: '50%',
-                    background: 'var(--bg-input)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)',
-                    flexShrink: 0,
-                  }}>
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: 14 }}>{name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>ID: {sid}</div>
-                  </div>
+          <>
+            {/* Action Bar for Manual */}
+            <div className="flex-between" style={{ marginBottom: 'var(--space-4)' }}>
+                <div style={{ position: 'relative', flex: 1, maxWidth: 300 }}>
+                  <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    className="form-input"
+                    placeholder="Search student…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    style={{ width: '100%', paddingLeft: 36 }}
+                  />
                 </div>
-                <AttendanceToggle status={status} onChange={v => setAttendanceMap(m => ({ ...m, [sid]: v }))} />
+                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                  <button className="btn btn-secondary" onClick={() => markAll('present')}>
+                    <UserCheck size={14} /> Mark All Present
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => markAll('absent')}>
+                    <UserX size={14} /> Mark All Absent
+                  </button>
+                  <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                    {saving ? <RefreshCw size={14} className="spin" /> : <Save size={14} />}
+                    {saving ? 'Saving…' : 'Save Changes'}
+                  </button>
+                </div>
+            </div>
+
+            {/* Save message */}
+            {saveMsg && (
+              <div style={{
+                padding: '10px 16px', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)',
+                background: saveMsg.type === 'success' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                color: saveMsg.type === 'success' ? '#10b981' : '#f87171',
+                fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                {saveMsg.type === 'success' ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+                {saveMsg.text}
               </div>
-            );
-          })}
-        </div>
+            )}
+
+            {/* Stats mini bar */}
+            {!stLoading && stats && (
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)',
+                marginBottom: 'var(--space-4)',
+              }}>
+                {[
+                  { label: 'Total Enrolled',   value: stats.total_students ?? studs.length, color: '#6366f1' },
+                  { label: 'Present', value: stats.total_present  ?? presentCount, color: '#10b981' },
+                  { label: 'Absent',  value: stats.total_absent   ?? absentCount,  color: '#f87171' },
+                ].map(s => (
+                  <div key={s.label} style={{
+                    padding: 'var(--space-3)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)',
+                    textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.value}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Student list */}
+            {filtered.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--text-muted)' }}>No students found.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {filtered.map((student, idx) => {
+                  const sid    = student.student_id || student.id;
+                  const status = attendanceMap[sid] || 'present';
+                  const name   = `${student.first_name || ''} ${student.last_name || ''}`.trim() || `Student #${sid}`;
+                  return (
+                    <div key={sid} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: 'var(--space-3) var(--space-4)',
+                      background: status === 'present' ? 'rgba(16,185,129,0.04)' : 'rgba(239,68,68,0.04)',
+                      borderRadius: 'var(--radius-md)',
+                      borderLeft: `3px solid ${status === 'present' ? '#10b981' : '#f87171'}`,
+                      transition: 'background 0.2s',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: '50%',
+                          background: 'var(--bg-input)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)',
+                          flexShrink: 0,
+                        }}>
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: 14 }}>{name}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>ID: {sid}</div>
+                        </div>
+                      </div>
+                      <AttendanceToggle status={status} onChange={v => setAttendanceMap(m => ({ ...m, [sid]: v }))} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
       )}
     </div>
   );
@@ -422,12 +463,6 @@ const TeacherAttendancePage = () => {
         </>
       ) : (
         <>
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">Attendance Sheet</h1>
-              <p className="page-subtitle">Mark students present or absent</p>
-            </div>
-          </div>
           <div className="glass-card">
             <AttendanceSheet lesson={selectedLesson} onBack={() => setSelectedLesson(null)} />
           </div>
