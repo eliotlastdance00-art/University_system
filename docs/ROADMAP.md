@@ -1,6 +1,6 @@
 # 🗺️ University System — ROADMAP (ädimme-ädim iş meýilnamasy)
 
-> Çeşme: [`docs/AUDIT.md`](./AUDIT.md) (158 tapyndy, ID-ler şol ýerden)
+> Çeşme: [`docs/AUDIT.md`](./AUDIT.md) (160 tapyndy, ID-ler şol ýerden)
 > Soňky täzelenme: **Faza F0 tamamlandy, Faza F1 dowam edýär**
 
 ---
@@ -57,7 +57,7 @@ npm run ci            # ýokardakylaryň hemmesi yzly-yzyna
 
 | Ýerine ýetirilen iş | Audit ID |
 |---|---|
-| Doly audit: 158 tapyndy (B1–B16, S1–S16, H1–H22, M1–M25, F1–F35, O1–O10, D1–D31) | — |
+| Doly audit: 160 tapyndy (B1–B16, S1–S16, H1–H22, M1–M25, F1–F37, O1–O10, D1–D31) | — |
 | Design system v2: `styles/{tokens,base,components,layout}.css` — light/dark/system, AA kontrast, `--chart-1..8` | F21, F25 |
 | UI kit (17 modul): Button · Primitives (Card/Stat/Badge/Avatar/Ring/BarChart/Timeline/KVList…) · Field (10 kontrol) · Overlay (Modal/Drawer/Confirm/Dropdown) · Tabs · DataTable · ErrorBoundary | F22–F25 |
 | Layout v2: AppLayout · Sidebar · Header (breadcrumbs, ⌘K, tema, dil, bildiriş, profil) · MobileNav · CommandPalette | F4, F6, F20, F21, F30 |
@@ -183,7 +183,7 @@ CORS `.*` + credentials (S5) · açyk `sections/cohorts/programs/subjects/academ
 38× `conn.commit()` (H5) · `assign_profile` UPDATE-only (H1/H2) · OTP replayable (H7) · Redis pool her request-de (H12/H13) · pagination `has_more` off-by-one (H18d) · `subjects` DELETE ýok (H18).
 
 ### C5 — DevOps (O1–O10)
-`requirements.txt`-de **mümkin bolmadyk pin-ler** (`argon==0.2.0`, `fastar==0.11.0`, `PyMySQL==1.2.0`, `starlette==1.3.1`) → Docker build **ýykylýar** · `.env.example` **boş** → `Settings()` ValidationError · `docker-compose.yml`-de `Database` (uly harp) · healthcheck paroly syzdyrýar.
+`requirements.txt`-de **mümkin bolmadyk pin-ler** (`argon==0.2.0`, `fastar==0.11.0`, `PyMySQL==1.2.0`, `starlette==1.3.1`) → Docker build **ýykylýar** · `.env.example` **boş** → `Settings()` ValidationError · `docker-compose.yml`-de `Database` (uly harp) · healthcheck paroly syzdyrýar · **production nginx-de API proxy ýok** (**F37**) → konteýnerlenen frontend API-ä ýetip bilmeýär.
 
 > **Sorag:** C1-iň haýsy bölegine rugsat berýärsiň? Rugsat bolmasa, F3/F4 fazalary "goragly UI + bellik" derejesinde galar we **doly işleýän** ulgam bolmaz.
 
@@ -205,8 +205,71 @@ CORS `.*` + credentials (S5) · açyk `sections/cohorts/programs/subjects/academ
 
 ---
 
+## BÖLÜM D — Barlag gurşawy we subutnama tertibi
+
+### D1 · Häzirki gurşawyň çäklendirmesi (möhüm)
+
+Iş gurşawynda (sandbox) **MySQL we Redis ýok**, `.env.example` bolsa **boş**
+(**H22**) → `Settings()` `ValidationError` berýär, şonuň üçin `uvicorn` /
+`docker compose up` **işledip bolmaýar**. Netije:
+
+| Barlag görnüşi | Ýagdaý |
+|---|---|
+| Statiki barlag (kod okamak, `compileall`, `pyflakes`) | ✅ mümkin |
+| `npm run ci` (lint · verify · build · bundle budget) | ✅ mümkin — **esasy derweze** |
+| Hakyky HTTP soragy bilen endpoint barlagy | ❌ mümkin däl (DB ýok) |
+| Brauzerde manual barlag | ❌ sandbox-da mümkin däl → **eýede** (D3) |
+
+Şonuň üçin her faza **statiki subutnama** bilen tamamlanýar we brauzer barlagy
+üçin eýä **checklist** berilýär (D3). Backend jogabyna bagly UI ýerleri
+**goragly** (defensive) ýazylýar: boş jogap → `EmptyState`, ýalňyşlyk →
+banner + retry, hiç haçan ak ekran däl.
+
+### D2 · Karar garaşýan teklipler (kod ýazylmady)
+
+| # | Teklip | Näme berýär | Status |
+|---|---|---|---|
+| **P1** | **Mock mode**: `VITE_USE_MOCK=1` bolanda `api/client.js` interceptor-y `src/mocks/*.json` fixture-lerini gaýtarýar. Diňe `import.meta.env.DEV`-de işjeň → production bundle-a düşmeýär | Backend bolmasa-da ähli sahypany brauzerde doly barlamak mümkin (D1-iň çäklendirmesini aýyrýar); Playwright e2e (F6) şol režimde işleýär | ⏳ **karar garaşylýar** — diňe frontend kody, A3-e garşy däl |
+| **P2** | **CD**: `v*.*.*` tag → frontend image GHCR-e push + GitHub Release | `frontend-ci.yml`-däki `image` işi diňe **gurýar** (push ýok). Tag bilen wersiýa çykarmak mümkin bolýar | ✅ goşuldy (`.github/workflows/release.yml`) |
+| **P3** | **F37 düzedişi**: nginx-e `proxy_pass` + relative `VITE_API_URL` | Deploy edilen frontend hakykatdanam işleýär | ⏳ **A3 rugsady gerek** (`Docker/`, `docker-compose.yml`) |
+| **P4** | Inter şriftini **self-host** etmek (`@fontsource/inter`) | Daşarky sorag ýok; offline/intranet gurşawda şrift işleýär (häzir async Google Fonts) | ⏳ karar garaşylýar — diňe frontend |
+
+### D3 · Eýe üçin manual barlag checklisti (F0 + F1)
+
+`docker compose up -d` ýa-da `cd frontend && npm run dev` soň:
+
+| # | Barlag | Garaşylýan netije |
+|---|---|---|
+| 1 | `/login` → e-poçta/parol → OTP | Öz dashboard-yňa düşýär |
+| 2 | Sidebar-daky **ähli** link | 404 ýok; her link öz sahypasyny açýar (öň `/admin/attendance`, `/admin/grades`, `/admin/sections` işlemeýärdi) |
+| 3 | `/admin/sections` | **Section** sanawy (id · number · cohort · capacity) — Cohorts däl (**F33** düzedildi) |
+| 4 | Section döret/üýtget/poz + students drawer | Modal `SectionCreate`/`UpdateSection` shemasyna gabat |
+| 5 | Header → tema (light/dark/system) | Sahypa täzeden ýüklenmezden üýtgeýär; **F5** basylanda ak flash ýok |
+| 6 | Header → dil (TK/EN) | Menýu, tablisa başlyklary, toast-lar üýtgeýär |
+| 7 | `Ctrl/⌘ + K` | Palette açylýar; `↑↓` + `Enter` nawigasiýa; `Esc` ýapýar |
+| 8 | Brauzeri 375 px-e çenli kiçelt | Sidebar → drawer; aşaky tab bar; tablisa → kart görnüşi |
+| 9 | Ýalňyş URL (`/abc`) | **404 sahypasy** (öň sessiz `/`-e redirect bolýardy) |
+| 10 | Bildiriş jaňy | Badge hakyky san; "Mark all as read" **paralel** işleýär |
+| 11 | `/profile` | 4 tab: Overview · Edit · Security · Preferences |
+| 12 | Diňe klawiatura: `Tab` | skip-link → sidebar → header → mazmun; modal açykda fokus **içinde** galýar |
+
+> ⚠️ 3–4-nji maddalar `sections` router-de **auth guard ýokdugy** (S3) üçin
+> häzir rugsadsyz hem işleýär — bu backend işi (Bölüm C2).
+> 11-nji maddanyň "Edit" tab-y **B15**, "Security" tab-y **B16/S1** sebäpli
+> 500/ýalňyş parol berip biler — UI duýduryş görkezýär, ýöne doly işledilmegi
+> C1 rugsadyna bagly.
+
+### D4 · F6 üçin goşmaça derweze (a11y + öndürijilik)
+
+F6 fazasynda `npm run ci`-e goşulýar: **Lighthouse** (Performance ≥ 90,
+a11y ≥ 90, Best Practices ≥ 95) we **axe-core** skany. Häzirki F0/F1
+netijeleri `docs/TEST_LOG.md`-de.
+
+---
+
 ## 📎 Goşmaça resminamalar
 
-- [`docs/AUDIT.md`](./AUDIT.md) — 158 tapyndynyň doly sanawy
+- [`docs/AUDIT.md`](./AUDIT.md) — 160 tapyndynyň doly sanawy
 - [`docs/TEST_LOG.md`](./TEST_LOG.md) — her fazanyň test gate netijeleri (subutnama)
-- `.github/workflows/frontend-ci.yml` — CI/CD pipeline
+- `.github/workflows/frontend-ci.yml` — CI pipeline (test gate)
+- `.github/workflows/release.yml` — CD pipeline (tag → GHCR image + GitHub Release)
