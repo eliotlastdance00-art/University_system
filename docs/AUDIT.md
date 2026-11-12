@@ -296,6 +296,7 @@ exceptions.py→ AppError şahalary
 | **F34** | `app/academic/sections/repository.py:120` | `get_section_timetable()` — `get_section_students()`-iň **copy-paste nusgasy** (studentleri gaýtarýar, timetable däl). Häzir **ölü kod** (router `TimetableService.get_group`-y ulanýar), ýöne biri ony ulanmaga synanyşsa ýalňyş maglumat berer. |
 | **F35** | `pages/admin/AdminProfilePage.jsx` + `pages/teacher/TeacherProfilePage.jsx` | Iki sany **dublikat** profil sahypasy (641 setir), student/dean üçin bolsa profil sahypasy **ýok**. `/profile` route-y `DynamicProfilePage` bilen rol boýunça saýlaýardy, ýöne `dean`/`student` admin nusgasyna düşýärdi. |
 | **F36** | `components/NotificationHandler.jsx:55` | Browser bildirişiniň ikony `'/vite.svg'` — `public/`-de **beýle faýl ýok** (diňe `favicon.svg`, `icons.svg`, `firebase-messaging-sw.js` bar) → her push bildirişinde ikon **404**, bildiriş ikonsyz görünýär. Şeýle hem `src/assets/{react,vite}.svg` we `hero.png` **hiç ýerde ulanylmaýar** (ölü asset). |
+| **F37** | `Docker/frontend.Dockerfile` (nginx `server` blogy) + `docker-compose.yml:29` | 🟠 Production nginx konfigurasiýasynda `/University_system/v1` üçin **`proxy_pass` ýok**; `VITE_API_URL` bolsa **build wagtynda** koda bişirilýär we default-y `http://localhost:8000/University_system/v1`. Netije: konteýnerlenen frontend **API-ä ýetip bilmeýär** — brauzer `localhost:8000`-e ýüz tutýar (ulanyjynyň öz kompýuteri, backend däl) ýa-da nginx 404 gaýtarýar. Dev-de Vite proxy işleýär, şonuň üçin kemçilik **diňe deploy/production** wagty ýüze çykýar we lokal barlagda görünmeýär. Çözgüt: nginx-e `location /University_system/v1/ { proxy_pass http://backend:8000; }` + `VITE_API_URL=/University_system/v1` (relative). ❄️ **A3: `Docker/` we `docker-compose.yml` doňdurylan → rugsat gerek.** |
 
 ### 4.3 Frontend-iň gowy taraplary (gorap galmaly)
 
@@ -383,10 +384,10 @@ Bular **gowy**, üýtgetme:
 | 🔴 Critical (howpsuzlyk) | 16 (S1–S16) |
 | 🟠 High (funksional) | 25 (H1–H22, H18b–H18d) |
 | 🟡 Medium (hil) | 25 (M1–M25) |
-| 🔵 Frontend | 36 (F1–F36) |
+| 🔵 Frontend | 37 (F1–F37) |
 | ⚙️ DevOps | 10 (O1–O10) |
 | 🗄️ Database | 31 (D1–D30, D10b) |
-| **Jemi** | **159** |
+| **Jemi** | **160** |
 
 ---
 
