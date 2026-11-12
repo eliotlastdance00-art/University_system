@@ -25,10 +25,6 @@ import { IconButton } from '../ui/Button';
    • Aşakda ulanyjy kartasy + dropdown (profil / sazlamalar / çykmak)
    ═══════════════════════════════════════════════════════════ */
 
-const BADGE_SOURCES = {
-  unreadNotifications: 'unread',
-};
-
 function SidebarContent({ onNavigate }) {
   const { user, logout, displayName } = useAuth();
   const { t } = useI18n();

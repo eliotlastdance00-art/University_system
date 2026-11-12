@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  CheckCircle2, UsersRound, CalendarDays, TrendingUp, UserX, Clock,
+  CheckCircle2, UsersRound, TrendingUp, UserX, Clock,
   AlertCircle, RefreshCw, Download, Activity,
 } from 'lucide-react';
 import { getSections } from '../../api/sections';
@@ -13,7 +13,7 @@ import {
   Button, Card, CardHeader, CardBody, StatCard, DataTable, Select,
   Field, Alert, Ring, Progress, StatusBadge, EmptyState, Badge,
 } from '../../components/ui';
-import { formatNumber, todayISO, formatDate, formatTime } from '../../lib/format';
+import { formatNumber, todayISO, formatDate } from '../../lib/format';
 
 /* ═══════════════════════════════════════════════════════════
    Admin → Attendance

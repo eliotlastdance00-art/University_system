@@ -50,7 +50,7 @@ export function CommandPalette() {
   const { paletteOpen, closePalette, isMac } = useUi();
   const { user, logout } = useAuth();
   const { t, locale, setLocale } = useI18n();
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
   const navigate = useNavigate();
 
   const [query, setQuery] = useState('');

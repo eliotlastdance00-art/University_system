@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   User, Shield, Palette, Mail, Building2, Layers, Hash, KeyRound,
-  Save, RefreshCw, Monitor, Sun, Moon, Languages, Eye, EyeOff,
+  Save, RefreshCw, Monitor, Sun, Moon, Languages,
   CheckCircle2, AlertTriangle, Copy, GraduationCap, Briefcase, IdCard,
 } from 'lucide-react';
 import { getMyProfile, updateMyProfile, updateMyPassword } from '../../api/profile';

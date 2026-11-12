@@ -62,9 +62,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 1/4 — oxlint: 0 error bolmaly (warning-lar F6 fazasynda arassalanýar)
-      - name: Lint (oxlint)
-        run: npx oxlint src --max-warnings=999
+      # 1/4 — oxlint: 0 error + WARNING RATCHET
+      #     `--max-warnings=48` — häzirki kabul edilen dereje.
+      #     Täze warning goşulsa CI gyzyl bolýar; F6 fazasynda
+      #     bu san 12-ä (diňe `only-export-components`) düşürilýär.
+      - name: Lint (oxlint + warning ratchet)
+        run: npm run lint
 
       # 2/4 — Statiki öz-özüni barlaýyş (scripts/verify.mjs):
       #       i18n pokrytiýe · nav↔route gabatlygy · rol gabatlygy

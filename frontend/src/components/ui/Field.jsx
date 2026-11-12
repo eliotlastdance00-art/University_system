@@ -233,7 +233,7 @@ export function SegmentedControl({ value, onChange, options = [], size = 'md', a
 }
 
 /* ─── Convenience: label + control birleşdirilen ──────────── */
-export function TextField({ label, hint, error, required, children, ...rest }) {
+export function TextField({ label, hint, error, required, ...rest }) {
   return (
     <Field label={label} hint={hint} error={error} required={required} htmlFor={rest.id}>
       <Input invalid={!!error} {...rest} />

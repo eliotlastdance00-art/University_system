@@ -58,13 +58,19 @@
 | 1.4 | Ölü assetler pozuldy: `src/assets/react.svg`, `src/assets/vite.svg`. Bildiriş ikony `/vite.svg` (404) → `/favicon.svg` | ✅ (F36) |
 | 1.5 | `sections` nested endpoint-leri UI-a baglandy: `/{id}/students`, `/{id}/attendance/stats` | ✅ |
 | — | **Goşmaça tapylan bug:** `TabPanel` `active` prop-y goldamaýardy → ähli paneller bir wagtda render bolýardy + React "unknown prop" duýduryşy. Düzedildi. | ✅ |
+| — | `Modal.initialFocus` yglan edilipdi ýöne **ulanylmaýardy** (hollow prop). Indi hakykatdan fokuslaýar (a11y). | ✅ |
+| — | `DataTable.getRowKey` → `useCallback` (exhaustive-deps duýduryşy aýyryldy) | ✅ |
+| — | **Warning ratchet**: `npm run lint` = `oxlint src --max-warnings=48`. Täze warning goşulsa CI gyzyl. F6-da 12-ä düşürilýär. | ✅ |
 
 ### Test gate F1
 
 ```
-$ npx oxlint src
-Found 61 warnings and 0 errors.
-Finished in 50ms on 86 files with 92 rules using 2 threads.
+$ npx oxlint src --max-warnings=48
+Found 48 warnings and 0 errors.        ← 61 → 48 (täze faýllar arassalandy)
+Finished in 35ms on 86 files with 92 rules using 2 threads.
+# 48 warning-iň 36-sy KÖNE sahypalarda (F6-da arassalanýar),
+# 12-si bolsa `react/only-export-components` — context/hook faýllary
+# üçin standart gurluş (ThemeProvider + useTheme bir faýlda), ŞEÝLE GALÝAR.
 
 $ node scripts/verify.mjs
   · i18n: tk, en — tk 253 açar / en 253 açar
@@ -92,7 +98,7 @@ $ npm run ci
 | Zat | Sebäp | Haýsy faza |
 |---|---|---|
 | `src/assets/hero.png` ulanylmaýar (13 kB) | Login dizaýny F2-de kesgitlenýär — şol wagt ulanylar ýa-da pozular | F2 |
-| oxlint 61 warning | Köpüsi köne sahypalardaky ulanylmaýan importlar we `no-await-in-loop` | F6 |
+| oxlint 48 warning (ratchet bilen berkidilen) | 36-sy köne sahypalarda; 12-si kabul edilen `only-export-components` | F6 |
 | `/sections` router-de auth guard ýok (**S3**) | ❄️ Backend doňdurylan — rugsat gerek | Bölüm C |
 | `capacity` DB-de berk ýerine ýetirilmeýär (**D26**) | ❄️ Backend/schema — UI duýduryş berýär | Bölüm C |
 

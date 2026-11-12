@@ -42,9 +42,23 @@ export function Modal({
   initialFocus,
 }) {
   const portal = usePortal();
-  const trapRef = useFocusTrap(open);
+  // `initialFocus` berlen bolsa trap-yň awto-focusyny öçürýäris we
+  // görkezilen elementi özümiz fokuslaýarys (a11y: forma açylanda
+  // birinji meýdana düşmeli).
+  const trapRef = useFocusTrap(open, !initialFocus);
   useLockBodyScroll(open);
   useEscapeKey(() => closeOnEscape && onClose?.(), open && closeOnEscape);
+
+  useEffect(() => {
+    if (!open || !initialFocus) return undefined;
+    const raf = requestAnimationFrame(() => {
+      const el = typeof initialFocus === 'string'
+        ? document.querySelector(initialFocus)
+        : (initialFocus?.current ?? initialFocus);
+      el?.focus?.({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open, initialFocus]);
 
   if (!open || !portal) return null;
 

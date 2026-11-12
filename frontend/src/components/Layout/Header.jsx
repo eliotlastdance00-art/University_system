@@ -80,7 +80,7 @@ function Breadcrumbs() {
 function NotificationsMenu() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { items, unreadCount, markAsRead, markAllAsRead, refresh, loading } = useNotifications();
+  const { items, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications();
 
   return (
     <Dropdown

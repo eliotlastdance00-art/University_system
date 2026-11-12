@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   FileText, Plus, Pencil, Trash2, Award, TrendingUp, BookMarked,
-  RefreshCw, Download, GraduationCap,
+  Download, GraduationCap,
 } from 'lucide-react';
 import { getSections, getSectionStudents } from '../../api/sections';
 import { getSubjects } from '../../api/subjects';
@@ -14,7 +14,7 @@ import { useToast } from '../../contexts/ToastContext';
 import {
   Button, IconButton, Card, CardHeader, CardBody, StatCard, DataTable,
   Select, Field, Input, Textarea, Modal, ConfirmDialog, Alert, Badge,
-  StatusBadge, EmptyState, Progress, Avatar,
+  StatusBadge, EmptyState, Progress,
 } from '../../components/ui';
 import {
   formatNumber, formatDate, scoreToLetter, scoreToTone, scoreToGpa, toNumber,

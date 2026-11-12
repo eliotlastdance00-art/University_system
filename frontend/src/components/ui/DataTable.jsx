@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight,
-  Inbox, Search, AlertCircle, RefreshCw,
+  Inbox, Search, RefreshCw,
 } from 'lucide-react';
 import { SearchInput } from './Field';
 import { Button, IconButton } from './Button';
@@ -73,8 +73,10 @@ export function DataTable({
   emptyDescription = 'Adjust your filters or create a new record.',
   emptyAction,
 }) {
-  const getRowKey = (row, index) =>
-    (typeof rowKey === 'function' ? rowKey(row) : row[rowKey]) ?? index;
+  const getRowKey = useCallback(
+    (row, index) => (typeof rowKey === 'function' ? rowKey(row) : row[rowKey]) ?? index,
+    [rowKey],
+  );
 
   /* ── Gözleg (client-side) ───────────────────────────────── */
   const [internalSearch, setInternalSearch] = useState('');
@@ -157,7 +159,10 @@ export function DataTable({
   };
 
   /* ── Saýlama ────────────────────────────────────────────── */
-  const selectedSet = useMemo(() => new Set(selected.map((s) => (typeof s === 'object' ? getRowKey(s) : s))), [selected]);
+  const selectedSet = useMemo(
+    () => new Set(selected.map((s) => (typeof s === 'object' ? getRowKey(s) : s))),
+    [selected, getRowKey],
+  );
   const allVisibleSelected = visibleRows.length > 0 && visibleRows.every((r) => selectedSet.has(getRowKey(r)));
 
   const toggleAll = () => {
