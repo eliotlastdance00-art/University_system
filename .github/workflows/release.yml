@@ -1,0 +1,250 @@
+# ═══════════════════════════════════════════════════════════════
+#  CD — Release (tag → container image + GitHub Release)
+# ───────────────────────────────────────────────────────────────
+#  ROADMAP.md Bölüm D · P2 teklibi.
+#
+#  `frontend-ci.yml` her push/PR üçin **test gate**-i işledýär, ýöne
+#  image-i diňe *gurýar* (push ýok). Bu workflow **wersiýa çykarmak**
+#  üçin: `v*.*.*` tag → gate → GHCR-e push → GitHub Release.
+#
+#  ❄️ A3/A4: BACKEND DOŇDURYLAN.
+#     • Backend image gurulmaýar (`requirements.txt` mümkin däl pin-ler — C5).
+#     • `Docker/frontend.Dockerfile` we `docker-compose.yml` **üýtgedilmeýär**;
+#       şonuň üçin image build `continue-on-error: true` — şowsuzlyk
+#       O-series / F37 buglaryny görkezýär, ýöne release-i togtatmaýar
+#       (togtatmak üçin eýeden rugsat alynyp, Dockerfile düzedilmeli).
+# ═══════════════════════════════════════════════════════════════
+
+name: Release (CD)
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (mysal: v0.1.0). Boş goýulsa → "edge" image.'
+        required: false
+        default: ''
+      push_image:
+        description: 'Image-i GHCR-e push etmelimi?'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22'          # frontend-ci.yml bilen birmeňzeş
+  REGISTRY: ghcr.io
+
+jobs:
+  # ───────────────────────────────────────────────────────────
+  # 1. PREFLIGHT — tag üçin hem şol bir test gate (A2)
+  #    Broken build hiç haçan release bolmaly däl.
+  # ───────────────────────────────────────────────────────────
+  preflight:
+    name: Test gate (lint · verify · build · budget)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # lint → verify → build → check:bundle (ROADMAP A2)
+      - name: npm run ci
+        run: npm run ci
+
+      - name: Gate summary
+        if: always()
+        run: |
+          {
+            echo "### 🚦 Release preflight (A2 test gate)"
+            echo ""
+            echo "| Derweze | Netije |"
+            echo "|---|---|"
+            echo "| lint (oxlint, ratchet) | ${{ job.status }} |"
+            echo "| verify (6 statiki barlag) | ${{ job.status }} |"
+            echo "| build (vite) | ${{ job.status }} |"
+            echo "| bundle budget (4 çäk) | ${{ job.status }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ───────────────────────────────────────────────────────────
+  # 2. IMAGE — gur we GHCR-e push et
+  # ───────────────────────────────────────────────────────────
+  image:
+    name: Build & push frontend image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: preflight
+    continue-on-error: true          # ❄️ A3: Dockerfile doňdurylan (O-series / F37)
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.name.outputs.full }}
+      version: ${{ steps.vars.outputs.version }}
+      pushed: ${{ steps.build.outcome }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: vars
+        run: |
+          set -euo pipefail
+          REF="${{ github.ref_name }}"
+          case "$REF" in
+            v*) VERSION="$REF" ;;
+            *)  VERSION="${{ inputs.tag }}" ;;
+          esac
+          VERSION="${VERSION:-edge}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      # GHCR diňe lowercase kabul edýär
+      - name: Normalize image name
+        id: name
+        run: echo "full=$(echo "${{ env.REGISTRY }}/${{ github.repository }}/frontend" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Docker metadata (tags + OCI labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.name.outputs.full }}
+          tags: |
+            type=raw,value=${{ steps.vars.outputs.version }}
+            type=raw,value=latest,enable=${{ startsWith(steps.vars.outputs.version, 'v') }}
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.title=UniSystem — Frontend
+            org.opencontainers.image.description=React + Vite university management frontend (nginx)
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        if: ${{ inputs.push_image != false }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (and push)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: Docker/frontend.Dockerfile
+          push: ${{ inputs.push_image != false }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_API_URL=/University_system/v1
+            NODE_ENV=production
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "### 🐳 Frontend image"
+            echo "- image: \`${{ steps.name.outputs.full }}\`"
+            echo "- wersiýa: \`${{ steps.vars.outputs.version }}\`"
+            echo "- push: \`${{ inputs.push_image != false }}\`"
+            echo "- netije: **${{ steps.build.outcome }}**"
+            echo ""
+            echo "Tag-lar:"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Explain failure (Dockerfile doňdurylan)
+        if: failure()
+        run: |
+          {
+            echo "### ⚠️ Image build şowsuz — sebäbi doňdurylan faýllar (❄️ A3)"
+            echo ""
+            echo "\`Docker/frontend.Dockerfile\` üýtgedilmeýär, şonuň üçin bu ädim"
+            echo "aşakdaky belli DevOps buglary sebäpli ýykylyp biler:"
+            echo ""
+            echo "- \`npm ci --frozen-lockfile\` — npm-de beýle flag ýok (**O-series**)"
+            echo "- \`VITE_FIREBASE_*\` ARG-leri ýok → FCM production-da işlemeýär (**O4**)"
+            echo "- nginx-de \`/University_system/v1\` üçin \`proxy_pass\` ýok →"
+            echo "  image gurlan bolsa-da, konteýner API-ä ýetip bilmeýär (**F37**)"
+            echo ""
+            echo "Bular **Bölüm C** sanawynda — düzetmek üçin eýeden rugsat gerek."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ───────────────────────────────────────────────────────────
+  # 3. GITHUB RELEASE — diňe hakyky `v*` tag üçin
+  # ───────────────────────────────────────────────────────────
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ always() && startsWith(github.ref, 'refs/tags/v') }}
+    needs: [preflight, image]
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate notes
+        id: notes
+        run: |
+          set -euo pipefail
+          TAG="${{ github.ref_name }}"
+          PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          if [ -n "$PREV" ]; then RANGE="${PREV}..${TAG}"; else RANGE="${TAG}"; fi
+
+          {
+            echo "## ${TAG}"
+            echo ""
+            echo "| Zat | Baha |"
+            echo "|---|---|"
+            echo "| Test gate (A2) | ${{ needs.preflight.result }} |"
+            echo "| Container image | ${{ needs.image.outputs.image }}:${{ needs.image.outputs.version }} |"
+            echo "| Image build | ${{ needs.image.result }} |"
+            echo ""
+            echo "### Üýtgetmeler"
+            echo ""
+            git log --no-merges --pretty='- %s (%h)' "$RANGE" 2>/dev/null | head -100
+            echo ""
+            echo "> ❄️ Backend (\`app/\`, \`database/\`, \`Docker/\`, \`docker-compose.yml\`,"
+            echo "> \`requirements.txt\`) **doňdurylan** — ROADMAP Bölüm A · A3/A4."
+          } > RELEASE_NOTES.md
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes-file RELEASE_NOTES.md \
+            --latest

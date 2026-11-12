@@ -1,153 +1,237 @@
-import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useMemo, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Building2, Layers,
-  GraduationCap, Calendar, BookOpen, Clock,
-  CheckCircle, FileText, Bell, User, LogOut,
-  ChevronLeft, ChevronRight, ChevronDown
+  GraduationCap, ChevronDown, ChevronLeft, LogOut,
+  Settings, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useUi } from '../../contexts/UiContext';
+import { useI18n } from '../../i18n';
+import { useNotifications } from '../../contexts/NotificationsContext';
+import { navGroupsForRole, ROLE_META } from '../../config/navigation';
+import { Avatar } from '../ui/Primitives';
+import { Dropdown, DropdownItem, DropdownSeparator } from '../ui/Overlay';
+import { IconButton } from '../ui/Button';
 
-const Sidebar = () => {
-  const { user, logout } = useAuth();
+/* ═══════════════════════════════════════════════════════════
+   Sidebar — v2
+   ───────────────────────────────────────────────────────────
+   • Nawigasiýa `config/navigation.jsx`-den gelýär (ýeke çeşme)
+     → öňki broken linkler (`/admin/attendance`, `/admin/grades`)
+       we routed-ýok sahypalar (`SectionsPage`) düzeldi.  [AUDIT F2/F3]
+   • Desktop: ýygnalýan (collapsed) — ýagdaý localStorage-de
+   • Mobil (<1024px): fixed drawer + scrim
+   • Bildiriş badge-i NotificationsContext-den (real san)
+   • Aşakda ulanyjy kartasy + dropdown (profil / sazlamalar / çykmak)
+   ═══════════════════════════════════════════════════════════ */
+
+function SidebarContent({ onNavigate }) {
+  const { user, logout, displayName } = useAuth();
+  const { t } = useI18n();
+  const { unreadCount } = useNotifications();
+  const { collapsed, toggleCollapsed, isDesktop } = useUi();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
-  const [openGroup, setOpenGroup] = useState(null); // haýsy parent açyk
+  const navigate = useNavigate();
 
-  // Role based navigation menus
-  const getMenuLinks = () => {
-    const role = user?.role || 'student';
+  const [openGroups, setOpenGroups] = useState(() => new Set(['academic']));
 
-    if (role === 'admin' || role === 'dean') {
-      return [
-        { title: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={20} /> },
-        { title: 'Users', path: '/admin/users', icon: <Users size={20} /> },
-        { title: 'Faculties', path: '/admin/faculties', icon: <Building2 size={20} /> },
-        { title: 'Departments', path: '/admin/departments', icon: <Layers size={20} /> },
-        {
-          title: 'Academic',
-          icon: <GraduationCap size={20} />,
-          children: [
-            { title: 'Academic Years', path: '/admin/academic-years' },
-            { title: 'Programs', path: '/admin/programs' },
-            { title: 'Subjects', path: '/admin/subjects' },
-            { title: 'Cohorts', path: '/admin/cohorts' },
-          ],
-        },
-        { title: 'Assignments', path: '/admin/assignments', icon: <BookOpen size={20} /> },
-        { title: 'Timetable', path: '/admin/timetables', icon: <Calendar size={20} /> },
-        { title: 'Lessons', path: '/admin/lessons', icon: <Clock size={20} /> },
-        { title: 'Attendance', path: '/admin/attendance', icon: <CheckCircle size={20} /> },
-        { title: 'Grades', path: '/admin/grades', icon: <FileText size={20} /> },
-      ];
-    }
+  const groups = useMemo(() => navGroupsForRole(user?.role || 'student'), [user?.role]);
 
-    if (role === 'teacher') {
-      return [
-        { title: 'Dashboard', path: '/teacher/dashboard', icon: <LayoutDashboard size={20} /> },
-        { title: 'My Assignments', path: '/teacher/assignments', icon: <BookOpen size={20} /> },
-        { title: 'My Schedule', path: '/teacher/schedule', icon: <Calendar size={20} /> },
-        { title: 'Lessons', path: '/teacher/lessons', icon: <Clock size={20} /> },
-        { title: 'Attendance', path: '/teacher/attendance', icon: <CheckCircle size={20} /> },
-        { title: 'Grades', path: '/teacher/grades', icon: <FileText size={20} /> },
-      ];
-    }
-
-    return [
-      { title: 'Dashboard', path: '/student/dashboard', icon: <LayoutDashboard size={20} /> },
-      { title: 'My Grades', path: '/student/grades', icon: <FileText size={20} /> },
-      { title: 'My Attendance', path: '/student/attendance', icon: <CheckCircle size={20} /> },
-      { title: 'Assignments', path: '/student/assignments', icon: <BookOpen size={20} /> },
-    ];
+  const badgeFor = (item) => {
+    if (item.badge === 'unreadNotifications') return unreadCount;
+    return null;
   };
 
-  const links = getMenuLinks();
-
-  // Submenu-dan biri active bolsa, parent-i hem "active" hasapla
-  const isChildActive = (children) =>
-    children?.some((c) => location.pathname.startsWith(c.path));
-
-  const toggleGroup = (title) => {
-    setOpenGroup((prev) => (prev === title ? null : title));
+  const toggleGroup = (key) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
+
+  const isChildActive = (group) =>
+    group.items.some((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
+  const showLabels = !collapsed || !isDesktop;
 
   return (
-    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
-      <div className="sidebar-header">
-        <div className="logo-container">
-          <div className="logo-icon">
-            <GraduationCap size={24} color="white" />
-          </div>
-          {!collapsed && <span className="logo-text">UniSystem</span>}
-        </div>
-        <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)}>
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
-      </div>
+    <>
+      <nav className="sidebar-nav" aria-label="Main navigation">
+        {groups.map((group) => {
+          // "main" toparynda diňe 1 item (dashboard) — ony label-syz görkezýäris
+          const showLabel = group.key !== 'main' || group.items.length > 1;
+          // akademik topar 4+ item bolsa ýygnalýan (accordion) edýäris
+          const collapsibleGroup = group.key === 'academic' && group.items.length > 4 && showLabels;
+          const open = !collapsibleGroup || openGroups.has(group.key) || isChildActive(group);
 
-      <nav className="sidebar-nav">
-        <div className="nav-group">
-          {links.map((link) => {
-            // --- Adaty (leaf) item ---
-            if (!link.children) {
-              return (
-                <NavLink
-                  key={link.path}
-                  to={link.path}
-                  className={({ isActive }) => `nav-item ${isActive ? 'nav-item--active' : ''}`}
-                  title={collapsed ? link.title : ''}
-                >
-                  <span className="nav-icon">{link.icon}</span>
-                  {!collapsed && <span className="nav-title">{link.title}</span>}
-                </NavLink>
-              );
-            }
+          return (
+            <div className="nav-group" key={group.key}>
+              {showLabel && showLabels && (
+                <div className="nav-group__label">{t(`nav.${group.key}`)}</div>
+              )}
 
-            // --- Expandable parent item ---
-            const active = isChildActive(link.children);
-            const isOpen = openGroup === link.title || active;
-
-            return (
-              <div key={link.title} className="nav-group-item">
+              {collapsibleGroup && !open ? (
                 <button
-                  className={`nav-item nav-item--parent ${active ? 'nav-item--active' : ''}`}
-                  onClick={() => toggleGroup(link.title)}
-                  title={collapsed ? link.title : ''}
+                  type="button"
+                  className={`nav-item ${isChildActive(group) ? 'nav-item--active' : ''}`}
+                  onClick={() => toggleGroup(group.key)}
+                  aria-expanded="false"
                 >
-                  <span className="nav-icon">{link.icon}</span>
-                  {!collapsed && (
-                    <>
-                      <span className="nav-title">{link.title}</span>
-                      <ChevronDown
-                        size={16}
-                        className={`nav-chevron ${isOpen ? 'nav-chevron--open' : ''}`}
-                      />
-                    </>
-                  )}
+                  <span className="nav-icon"><GraduationCap size={19} aria-hidden="true" /></span>
+                  <span className="nav-title">{t('nav.academic')}</span>
+                  <ChevronDown size={15} className="nav-chevron" aria-hidden="true" />
                 </button>
+              ) : (
+                <>
+                  {collapsibleGroup && (
+                    <button
+                      type="button"
+                      className="nav-item"
+                      onClick={() => toggleGroup(group.key)}
+                      aria-expanded="true"
+                      style={{ color: 'var(--text-faint)', fontSize: 'var(--font-2xs)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-wider)', padding: '6px var(--space-3)' }}
+                    >
+                      <span className="nav-icon"><GraduationCap size={16} aria-hidden="true" /></span>
+                      <span className="nav-title">{t('nav.academic')}</span>
+                      <ChevronDown size={15} className="nav-chevron nav-chevron--open" aria-hidden="true" />
+                    </button>
+                  )}
 
-                {!collapsed && isOpen && (
-                  <div className="nav-submenu">
-                    {link.children.map((child) => (
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const badge = badgeFor(item);
+
+                    return (
                       <NavLink
-                        key={child.path}
-                        to={child.path}
+                        key={item.path}
+                        to={item.path}
+                        end={item.path.endsWith('/dashboard')}
+                        onClick={onNavigate}
+                        title={!showLabels ? t(item.labelKey) : undefined}
                         className={({ isActive }) =>
-                          `nav-subitem ${isActive ? 'nav-subitem--active' : ''}`
+                          `nav-item ${isActive ? 'nav-item--active' : ''}`
                         }
                       >
-                        {child.title}
+                        <span className="nav-icon">{Icon && <Icon size={19} strokeWidth={1.9} aria-hidden="true" />}</span>
+                        {showLabels && <span className="nav-title">{t(item.labelKey)}</span>}
+                        {showLabels && badge > 0 && (
+                          <span className="nav-badge">{badge > 99 ? '99+' : badge}</span>
+                        )}
+                        {!showLabels && badge > 0 && <span className="nav-badge nav-badge--dot" />}
                       </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          );
+        })}
       </nav>
+
+      {/* ─── Footer: ulanyjy + çykmak ───────────────────────── */}
+      <div className="sidebar-footer">
+        {isDesktop && (
+          <button type="button" className="sidebar-user" onClick={toggleCollapsed} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+            <span style={{ display: 'grid', placeItems: 'center', width: 32, height: 32, flex: 'none', borderRadius: 'var(--radius-md)', background: 'var(--bg-glass)', color: 'var(--text-muted)' }}>
+              {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            </span>
+            {!collapsed && (
+              <span className="sidebar-user__info">
+                <span className="sidebar-user__name">{collapsed ? '' : 'Collapse'}</span>
+                <span className="sidebar-user__role">Sidebar</span>
+              </span>
+            )}
+          </button>
+        )}
+
+        <Dropdown
+          align="left"
+          width={230}
+          trigger={({ toggle }) => (
+            <button type="button" className="sidebar-user" onClick={toggle} aria-haspopup="menu">
+              <Avatar name={user?.full_name} email={user?.email} size="sm" stableKey={user?.id} />
+              {(!collapsed || !isDesktop) && (
+                <>
+                  <span className="sidebar-user__info">
+                    <span className="sidebar-user__name">{displayName}</span>
+                    <span className="sidebar-user__role">
+                      {t(ROLE_META[user?.role]?.key || 'profile.student')}
+                    </span>
+                  </span>
+                  <ChevronDown size={14} style={{ marginLeft: 'auto', flex: 'none', color: 'var(--text-faint)' }} aria-hidden="true" />
+                </>
+              )}
+            </button>
+          )}
+        >
+          {({ close }) => (
+            <>
+              <div style={{ padding: 'var(--space-2) var(--space-3) var(--space-3)', minWidth: 0 }}>
+                <div className="truncate" style={{ fontSize: 'var(--font-sm)', fontWeight: 600 }}>{displayName}</div>
+                <div className="truncate" style={{ fontSize: 'var(--font-2xs)', color: 'var(--text-muted)' }}>
+                  {user?.email || t(ROLE_META[user?.role]?.key || 'profile.student')}
+                </div>
+              </div>
+              <DropdownSeparator />
+              <DropdownItem icon={Settings} onClick={() => { close(); navigate('/profile'); }}>
+                {t('nav.profile')}
+              </DropdownItem>
+              <DropdownSeparator />
+              <DropdownItem icon={LogOut} danger onClick={() => { close(); handleLogout(); }}>
+                {t('auth.signOut')}
+              </DropdownItem>
+            </>
+          )}
+        </Dropdown>
+      </div>
+    </>
+  );
+}
+
+export function Sidebar() {
+  const { mobileOpen, closeMobileNav, isDesktop, collapsed } = useUi();
+  const { t } = useI18n();
+  const { user } = useAuth();
+
+  const classes = ['sidebar'];
+  if (isDesktop && collapsed) classes.push('sidebar--collapsed');
+  if (mobileOpen) classes.push('is-open');
+
+  const aside = (
+    <aside className={classes.join(' ')} aria-label={t('app.tagline')}>
+      <div className="sidebar-header">
+        <NavLink to="/" className="logo-container" onClick={closeMobileNav}>
+          <span className="logo-icon" aria-hidden="true"><GraduationCap size={20} /></span>
+          <span className="logo-text">
+            <span className="logo-text__name">{t('app.name')}</span>
+            <span className="logo-text__sub">{t(`profile.${user?.role || 'student'}`)}</span>
+          </span>
+        </NavLink>
+
+        {!isDesktop && (
+          <IconButton icon={ChevronLeft} label={t('common.close')} size="sm" onClick={closeMobileNav} />
+        )}
+      </div>
+
+      <SidebarContent onNavigate={!isDesktop ? closeMobileNav : undefined} />
     </aside>
   );
-};
+
+  if (isDesktop) return aside;
+
+  return (
+    <>
+      {mobileOpen && <div className="sidebar-scrim" onClick={closeMobileNav} role="presentation" />}
+      {aside}
+    </>
+  );
+}
 
 export default Sidebar;

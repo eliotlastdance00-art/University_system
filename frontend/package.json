@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "oxlint src --max-warnings=48",
+    "verify": "node scripts/verify.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "ci": "npm run lint && npm run verify && npm run build && npm run check:bundle"
   },
   "dependencies": {
     "axios": "^1.19.0",

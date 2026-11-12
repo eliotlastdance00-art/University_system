@@ -52,7 +52,7 @@ const NotificationHandler = () => {
 
           // Browser Notification API arkaly görkez
           if (Notification.permission === 'granted') {
-            new Notification(title, { body, icon: '/vite.svg' });
+            new Notification(title, { body, icon: '/favicon.svg' });
           } else {
             console.log(`Bildiriş: [${title}] ${body}`);
           }

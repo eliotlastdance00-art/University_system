@@ -1,13 +1,128 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- ── Identifikator / SEO (AUDIT F17: öňki title "frontend_temp" bardy) ── -->
+    <title>UniSystem — University management</title>
+    <meta name="application-name" content="UniSystem" />
+    <meta
+      name="description"
+      content="UniSystem — universitet dolandyryş ulgamy: okuw ýyllary, programmalar, dersler, ders tertibi, gatnaşyk, bahalar we bildirişler. University management: academic years, programs, subjects, timetables, attendance, grades and notifications."
+    />
+    <meta name="author" content="University System" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0f19" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7fb" />
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="UniSystem" />
+    <meta property="og:title" content="UniSystem — University management" />
+    <meta
+      property="og:description"
+      content="Ders tertibi, gatnaşyk, bahalar we bildirişler bir ýerde. Timetables, attendance, grades and notifications in one place."
+    />
+    <meta property="og:image" content="/favicon.svg" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="UniSystem" />
+    <meta name="twitter:description" content="University management system." />
+    <meta name="twitter:image" content="/favicon.svg" />
+
+    <!-- ── Icons / PWA (AUDIT F29) ────────────────────────────── -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend_temp</title>
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- ── Şriftler: render-i bloklamaz ýaly ASYNC (AUDIT F11) ──
+         Öňki ýagdaý: `@import url(https://fonts.googleapis.com/…)` CSS-iň
+         içinde → FOUC + bloklaýan sorag + `tokens.css`-e bagly.
+         Indi: preconnect + `media="print"` hilesi → şrift ýüklenýänçä
+         ulgam fallback şriftleri ulanylýar (font-family stack-de bar). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      />
+    </noscript>
+
+    <!-- ── Pre-paint tema (FOUC-yň öňüni alýar) ──────────────────
+         CSS ýüklenmezden ÖŇ `data-theme`-i belleýäris, ýogsa garaňky
+         tema saýlan ulanyjy bir kadr ak ekrany görýär. -->
+    <script>
+      (function () {
+        try {
+          var KEY = 'us_theme';
+          var stored = localStorage.getItem(KEY);
+          var pref = stored === 'light' || stored === 'dark' ? stored : 'system';
+          var system = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+            ? 'light'
+            : 'dark';
+          var resolved = pref === 'system' ? system : pref;
+
+          var root = document.documentElement;
+          root.setAttribute('data-theme', resolved);
+          root.style.colorScheme = resolved;
+
+          // Ulgam temasynyň üýtgemegini diňle (ThemeProvider hem diňleýär,
+          // ýöne bu sahypa açyk wagty tab-a geçende hem işleýär)
+          if (pref === 'system' && window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function (e) {
+              if (localStorage.getItem(KEY) !== 'system') return;
+              var next = e.matches ? 'light' : 'dark';
+              root.setAttribute('data-theme', next);
+              root.style.colorScheme = next;
+            });
+          }
+        } catch (e) {
+          /* localStorage ýapyk (private mode) — default dark galýar */
+        }
+      })();
+    </script>
+
+    <!-- Ilkinji paint üçin minimal kritiki CSS (splash) -->
+    <style>
+      html { background: #0b0f19; }
+      html[data-theme='light'] { background: #f6f7fb; }
+      #boot {
+        position: fixed; inset: 0; display: grid; place-items: center;
+        font: 500 14px/1.4 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        color: #94a3b8; gap: 14px;
+      }
+      html[data-theme='light'] #boot { color: #64748b; }
+      #boot .ring {
+        width: 34px; height: 34px; border-radius: 50%;
+        border: 2.5px solid rgba(139, 92, 246, 0.22);
+        border-top-color: #8b5cf6;
+        animation: boot-spin 0.8s linear infinite;
+      }
+      #boot .stack { display: grid; justify-items: center; gap: 14px; }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { #boot .ring { animation-duration: 2.4s; } }
+    </style>
   </head>
+
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- React mount bolýança görünýän splash — JS ýüklenýärkä ak ekran ýok -->
+      <div id="boot">
+        <div class="stack">
+          <div class="ring" role="status" aria-live="polite" aria-label="Loading"></div>
+          <span>UniSystem</span>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
