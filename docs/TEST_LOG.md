@@ -104,6 +104,73 @@ $ npm run ci
 
 ---
 
+## Faza F1 · dowamy — Meýilnama, CD pipeline we täze tapyndy (F37)
+
+**Sene:** 2026-11-12 · **Branch:** `arena/2103c8cd-university-system` · **Base:** `7b8db5a`
+
+Bu ädimde **täze programma kody ýazylmady** (eýäniň görkezmesi: "birbada ählisini
+etme, pikirlen, roadmap döret"). Edilen iş: F1-iň netijesini gaýtadan subut etmek,
+meýilnamany barlag gurşawynyň çäklendirmeleri bilen doldurmak, CD pipeline goşmak
+we täze bir tapyndyny hasaba almak.
+
+### Test gate (F1 kody gaýtadan barlandy)
+
+| Gate | Buýruk | Netije |
+|---|---|---|
+| Lint | `npm run lint` (`oxlint src --max-warnings=48`) | 🟢 **0 error** / ≤48 warning (ratchet berkidilen) |
+| Verify | `npm run verify` (`scripts/verify.mjs`, 6 barlag) | 🟢 **0 error** — F33 dublikat tutulanok (SectionsPage düzedildi) |
+| Build | `npm run build` | 🟢 üstünlikli → **60 chunk** |
+| Budget | `npm run check:bundle` | 🟢 entry **78.29 kB**/150 · iň uly chunk **375.95 kB**/450 · CSS **72.45 kB**/120 · ilkinji ýük **424.60 kB**/480 |
+| **Jemi** | `npm run ci` | 🟢 **ÜSTÜNLIKLI — ähli büjetler çäginde** |
+
+> Gurşaw bellikleri: `node_modules` sandbox-da her ädimde täzeden gurulmaly
+> bolýar (`npm ci` → 154 paket, ~7 s). `package-lock.json` üýtgedilmedi.
+
+### Goşulan / täzelenen resminamalar we pipeline
+
+| Zat | Mazmun |
+|---|---|
+| `docs/AUDIT.md` → **F37** | Production nginx-de `/University_system/v1` üçin `proxy_pass` **ýok**; `VITE_API_URL` build wagtynda `http://localhost:8000/...` default-y bilen bişirilýär → **deploy edilen frontend API-ä ýetip bilmeýär**. Jemi: 159 → **160** tapyndy, Frontend 36 → **37**. |
+| `docs/ROADMAP.md` → **Bölüm D** | D1 barlag gurşawynyň çäklendirmesi (MySQL/Redis ýok, `.env.example` boş → backend işledip bolmaýar; haýsy barlag mümkin/ mümkin däl tablisasy) · D2 karar garaşýan 4 teklip (**P1 mock mode**, P2 CD, P3 F37 düzedişi, P4 self-host font) · D3 **eýe üçin 12 maddalyk manual barlag checklisti** · D4 F6 üçin Lighthouse/axe derwezesi |
+| `docs/ROADMAP.md` → C5 | F37 Bölüm C (DevOps, ❄️ doňdurylan) sanawyna goşuldy — `Docker/` we `docker-compose.yml` rugsatsyz üýtgedilmeýär (A3) |
+| `.github/workflows/release.yml` | **CD pipeline** (P2): `v*.*.*` tag / manual → 1) `preflight` = şol bir A2 test gate (broken build release bolmaýar) · 2) `image` = GHCR-e push (`continue-on-error`, sebäbi Dockerfile doňdurylan) · 3) `release` = commit sanawyndan bellikler + `gh release create` |
+| `frontend/package.json` | ✋ **degilmedi** (script-ler eýýäm F0-de goşulan) |
+| `frontend/src/**` | ✋ **hiç hili üýtgetme ýok** — bu ädim diňe meýilnama + pipeline |
+
+### CI/CD-yň häzirki gurluşy
+
+```
+push / PR (frontend/**)  →  frontend-ci.yml
+                              ├ quality        : lint → verify → build → budget   [BLOKLAÝAR]
+                              ├ backend-report : compileall + pyflakes            [diňe okaýar, ❄️]
+                              └ image          : docker build (push ýok)          [main / manual]
+
+tag v*.*.* / manual      →  release.yml
+                              ├ preflight      : npm run ci                       [BLOKLAÝAR]
+                              ├ image          : docker build + GHCR push         [continue-on-error ❄️]
+                              └ release        : GitHub Release + bellikler
+```
+
+Ýerine ýetirilen barlaglar (bu ädimde):
+```
+python -c "import yaml; yaml.safe_load(open('.github/workflows/release.yml'))"   → OK
+  jobs: preflight · image · release   (permissions job derejesinde çäklendirilen)
+yaml.safe_load(frontend-ci.yml / summary.yml)                                    → OK (regressiýa ýok)
+git status --porcelain app database requirements.txt docker-compose.yml Docker/backend.Dockerfile
+                                                                                   → **boş** (A3 ✅)
+```
+
+### Galan bellikler
+
+| Zat | Sebäp | Haýsy faza |
+|---|---|---|
+| `release.yml` sandbox-da **işledilip barlanmady** | Docker ýok; diňe YAML shema + logika barlandy. Hakyky barlag = ilkinji tag | ilkinji `v*` tag |
+| **F37** düzedilmedi | ❄️ `Docker/frontend.Dockerfile` + `docker-compose.yml` doňdurylan (A3) → **rugsat gerek** | Bölüm C |
+| **P1 mock mode** ýazylmady | Eýäniň kararyna garaşylýar (D2) | F2/F6 üçin peýdaly |
+| Eýäniň brauzer barlagy (D3, 12 madda) | Sandbox-da backend işledip bolmaýar (D1) | eýede |
+
+---
+
 ## Barlag gurallary (nähili işleýär)
 
 ### `frontend/scripts/verify.mjs` — 6 statiki barlag
@@ -125,4 +192,8 @@ Entry · iň uly chunk · CSS jemi · ilkinji ýük. `dist/` gerek → `build`-d
 
 ## Indiki: Faza F2 — Auth akymy we sessiýa
 
-Başlamazdan öň F1-iň netijesi tassyklanmaly (kada **A1**).
+F1-iň netijesi **tassyklandy** (`npm run ci` 🟢, 2026-11-12) → kada **A1** boýunça F2-ä geçip bolýar.
+
+F2 başlamazdan öň eýeden **iki karar** garaşylýar (ROADMAP Bölüm D2):
+- **P1** mock mode girizilýärmi? (girizilse, F2-niň brauzer barlagy sandbox-da hem mümkin bolýar)
+- **P3/F37** nginx proxy düzedişine rugsat barmy? (bolmasa, deploy edilen web API-ä ýetmeýär)
