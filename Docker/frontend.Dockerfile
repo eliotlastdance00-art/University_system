@@ -62,7 +62,10 @@ RUN chown -R nginx:nginx \
         /usr/share/nginx/html \
     && chmod -R 755 /var/cache/nginx \
     # nginx.pid faýlynyň ýerini üýtgedýäris (root bolmazdan ýazmak üçin)
-    && sed -i 's|/var/run/nginx.pid|/tmp/nginx.pid|g' /etc/nginx/nginx.conf
+    # sed pattern-y islendik öňki "pid ...;" setirini gabat getirýär,
+    # üýtgewsiz "/run/nginx.pid" ýa-da "/var/run/nginx.pid" bolsun
+    && sed -i 's|^pid[[:space:]]\+.*;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf \
+    && chown -R nginx:nginx /etc/nginx/conf.d
 
 # ── nginx konfigurasiýasyny goýýarys ─────────────────────────────
 # COPY bilen goşulýan custom nginx.conf (aşakda HEREDOC bilen inline)

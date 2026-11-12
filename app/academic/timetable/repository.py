@@ -40,8 +40,8 @@ class TimetableRepository(BaseRepository):
                     SELECT
                         t.id,
                         t.day,
-                        TIME_FORMAT(t.start_time, '%%H:%%i:%%s') as start_time,
-                        TIME_FORMAT(t.end_time, '%%H:%%i:%%s') as end_time,
+                        TIME_FORMAT(t.start_time, '%H:%i:%s') as start_time,
+                        TIME_FORMAT(t.end_time, '%H:%i:%s') as end_time,
                         t.room,
                         t.room_id,
                         t.assignment_id,
@@ -350,6 +350,7 @@ class TimetableRepository(BaseRepository):
         return task
 
     async def get_task(self, task_id: int) -> dict | None:
+        import json
         async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
@@ -359,9 +360,16 @@ class TimetableRepository(BaseRepository):
                 """,
                 (task_id,)
             )
-            return await cur.fetchone()
+            row = await cur.fetchone()
+            if row and isinstance(row.get("parameters"), str):
+                try:
+                    row["parameters"] = json.loads(row["parameters"])
+                except (json.JSONDecodeError, ValueError):
+                    row["parameters"] = {}
+            return row
 
     async def get_all_tasks(self) -> list[dict]:
+        import json
         async with self.conn.cursor(DictCursor) as cur:
             await cur.execute(
                 """
@@ -370,7 +378,14 @@ class TimetableRepository(BaseRepository):
                     ORDER BY created_at DESC
                 """
             )
-            return await cur.fetchall()
+            rows = await cur.fetchall()
+            for row in rows:
+                if isinstance(row.get("parameters"), str):
+                    try:
+                        row["parameters"] = json.loads(row["parameters"])
+                    except (json.JSONDecodeError, ValueError):
+                        row["parameters"] = {}
+            return rows
 
     async def update_task_status(self, task_id: int, status: str, error_message: str | None = None) -> None:
         async with self.conn.cursor(DictCursor) as cur:
@@ -488,7 +503,10 @@ class TimetableRepository(BaseRepository):
                 (name, capacity, room_type, building, floor, is_active)
             )
             room_id = cur.lastrowid
-        return await self.get_room_by_id(room_id)
+        room = await self.get_room_by_id(room_id)
+        if not room:
+            raise RuntimeError("Room could not be fetched after creation")
+        return room
 
     async def update_room(self, room_id: int, **kwargs) -> dict | None:
         fields = []
@@ -521,8 +539,8 @@ class TimetableRepository(BaseRepository):
             await cur.execute(
                 """
                     SELECT id, slot_number, label,
-                           TIME_FORMAT(start_time, '%%H:%%i:%%s') as start_time,
-                           TIME_FORMAT(end_time, '%%H:%%i:%%s') as end_time
+                           TIME_FORMAT(start_time, '%H:%i:%s') as start_time,
+                           TIME_FORMAT(end_time, '%H:%i:%s') as end_time
                     FROM time_slots
                     ORDER BY slot_number
                 """
@@ -621,7 +639,10 @@ class TimetableRepository(BaseRepository):
                     "INSERT INTO lecture_group_members (lecture_group_id, assignment_id) VALUES (%s, %s)",
                     (group_id, aid)
                 )
-        return await self.get_lecture_group(group_id)
+        group = await self.get_lecture_group(group_id)
+        if not group:
+            raise RuntimeError("Lecture group could not be fetched after creation")
+        return group
 
     async def get_lecture_group(self, group_id: int) -> dict | None:
         async with self.conn.cursor(DictCursor) as cur:

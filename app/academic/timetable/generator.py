@@ -24,7 +24,7 @@ from app.academic.timetable.repository import TimetableRepository
 
 logger = logging.getLogger(__name__)
 
-DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
 
 
 @dataclass
@@ -141,6 +141,7 @@ async def run_timetable_generation(conn, task_id: int, parameters: dict):
             )
             for r in rooms
         ]
+
 
         # Teacher availability map: teacher_id -> set of (day, slot_number)
         # Eğer bir hocanın hiç availability kaydı yoksa → tüm slotlarda müsait
@@ -464,8 +465,19 @@ def _solve_csp(
                 gaps += gap
         return gaps
 
+    import time
+    start_time = time.time()
+    iterations = 0
+
     def _backtrack(task_idx: int) -> bool:
         """Recursive backtracking."""
+        nonlocal iterations
+        iterations += 1
+        
+        # Timeout after 15 seconds or too many iterations to prevent combinatorial explosion
+        if time.time() - start_time > 15 or iterations > 500000:
+            return False
+
         if task_idx >= len(expanded_tasks):
             return True  # Tüm dersler yerleştirildi!
 

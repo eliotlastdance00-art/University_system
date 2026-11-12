@@ -126,12 +126,13 @@ CREATE TABLE IF NOT EXISTS subject_assignments (
 
 CREATE TABLE IF NOT EXISTS timetable (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    subject_assignment_id INT NOT NULL,
-    day_of_week TINYINT NOT NULL,   -- 1=Mon ... 7=Sun
+    assignment_id INT NOT NULL,
+    day ENUM('monday','tuesday','wednesday','thursday','friday','saturday') NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     room VARCHAR(50),
-    FOREIGN KEY (subject_assignment_id) REFERENCES subject_assignments(id) ON DELETE CASCADE
+    room_id INT NULL,
+    FOREIGN KEY (assignment_id) REFERENCES subject_assignments(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS timetable_generation_tasks (
@@ -149,10 +150,11 @@ CREATE TABLE IF NOT EXISTS timetable_drafts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     task_id INT NOT NULL,
     assignment_id INT NOT NULL,
-    day VARCHAR(20) NOT NULL,
+    day ENUM('monday','tuesday','wednesday','thursday','friday','saturday') NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     room VARCHAR(50),
+    room_id INT NULL,
     FOREIGN KEY (task_id) REFERENCES timetable_generation_tasks(id) ON DELETE CASCADE,
     FOREIGN KEY (assignment_id) REFERENCES subject_assignments(id) ON DELETE CASCADE
 );

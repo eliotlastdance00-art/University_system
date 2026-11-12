@@ -62,3 +62,4 @@ uvloop==0.22.1
 watchfiles==1.2.0
 websockets==16.1.1
 arq==0.26.0
+firebase-admin==6.6.0

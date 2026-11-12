@@ -97,7 +97,7 @@ class TimetableDetailResponse(BaseModel):
 
     # Group
     section_id: int
-    section_number: str
+    section_number: int
 
     # Schedule
     day: TimetableEnum
@@ -260,6 +260,6 @@ class TimetableDraftResponse(BaseModel):
     # Joined fields
     teacher_name: str | None = None
     subject_name: str | None = None
-    section_number: str | None = None
+    section_number: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
