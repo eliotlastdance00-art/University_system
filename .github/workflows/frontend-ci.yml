@@ -1,0 +1,200 @@
+# ═══════════════════════════════════════════════════════════════
+#  Frontend CI/CD — UniSystem web
+# ───────────────────────────────────────────────────────────────
+#  Bu pipeline ROADMAP.md "Bölüm A · A2 Test Gate" kadasydyr:
+#  her push/PR üçin lint → verify → build → bundle budget.
+#
+#  ❄️ A3/A4: BACKEND DOŇDURYLAN.
+#     `backend-report` we `image` işleri backend-e **degmeýär** —
+#     diňe okaýar we hasabat berýär (`continue-on-error: true`).
+#     Olaryň gyzyl netijesi ROADMAP Bölüm C-däki buglara degişli
+#     we düzetmek üçin eýesinden rugsat gerek.
+# ═══════════════════════════════════════════════════════════════
+
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # ───────────────────────────────────────────────────────────
+  # 1. TEST GATE — bloklaýjy (A2)
+  # ───────────────────────────────────────────────────────────
+  quality:
+    name: Test gate (lint · verify · build · budget)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 1/4 — oxlint: 0 error bolmaly (warning-lar F6 fazasynda arassalanýar)
+      - name: Lint (oxlint)
+        run: npx oxlint src --max-warnings=999
+
+      # 2/4 — Statiki öz-özüni barlaýyş (scripts/verify.mjs):
+      #       i18n pokrytiýe · nav↔route gabatlygy · rol gabatlygy
+      #       · dublikat sahypalar · lazy import · komponent ady
+      - name: Verify (i18n · routes · duplicates)
+        run: npm run verify
+
+      # 3/4 — Production build
+      - name: Build (vite)
+        run: npm run build
+
+      # 4/4 — Bundle ölçeg büjeti (entry 996 kB-a gaýtmazlygy üçin)
+      - name: Bundle budget
+        run: npm run check:bundle
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: frontend/dist
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Build summary
+        if: always()
+        run: |
+          {
+            echo "### Frontend build"
+            echo ""
+            echo "| Chunk | Ölçeg |"
+            echo "|---|---|"
+            for f in dist/assets/*.js dist/assets/*.css; do
+              [ -e "$f" ] || continue
+              printf '| `%s` | %s |\n' "$(basename "$f")" "$(du -h "$f" | cut -f1)"
+            done
+            echo ""
+            echo "Jemi: $(du -sh dist 2>/dev/null | cut -f1) · chunk sany: $(ls dist/assets | wc -l)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ───────────────────────────────────────────────────────────
+  # 2. BACKEND HASABATY — diňe okaýar, BLOKLAMAÝAR
+  #    Sebäp: backend doňdurylan (A3). Bu iş B1–B16 ýaly
+  #    "undefined name" buglaryny CI-de görünýän edýär,
+  #    ýöne hiç bir faýly üýtgetmeýär.
+  # ───────────────────────────────────────────────────────────
+  backend-report:
+    name: Backend static report (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Byte-compile check (syntax)
+        run: python -m compileall -q app
+
+      - name: Install pyflakes
+        run: python -m pip install --quiet pyflakes
+
+      - name: Report undefined names / unused imports
+        run: |
+          {
+            echo "### Backend statiki hasabat (diňe maglumat — doňdurylan ❄️)"
+            echo ""
+            echo "Bu iş backend koduny **üýtgetmeýär**. ROADMAP Bölüm C-de"
+            echo "garaşýan buglaryň häzirki sanyny görkezýär."
+            echo ""
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          python -m pyflakes app 2>&1 | tee -a /tmp/pyflakes.txt || true
+          cat /tmp/pyflakes.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Jemi tapyndy: $(grep -c ':' /tmp/pyflakes.txt 2>/dev/null || echo 0)" >> "$GITHUB_STEP_SUMMARY"
+          # Bloklaýjy däl: diňe ekrana çykarýarys
+          python -m pyflakes app || true
+
+  # ───────────────────────────────────────────────────────────
+  # 3. CD — Docker image (diňe main / el bilen)
+  #    `Docker/frontend.Dockerfile` üýtgedilmeýär (A3),
+  #    şonuň üçin şowsuzlyk O-series DevOps buglaryny
+  #    (requirements.txt pin-leri, ARG ýetmezligi) görkezýär.
+  # ───────────────────────────────────────────────────────────
+  image:
+    name: Build frontend image (CD)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: quality
+    continue-on-error: true
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push — registry secret ýok)
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: Docker/frontend.Dockerfile
+          push: false
+          load: false
+          tags: unisystem/frontend:${{ github.sha }}
+          build-args: |
+            VITE_API_URL=/University_system/v1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Note on failure
+        if: failure()
+        run: |
+          {
+            echo "### ⚠️ Docker image build şowsuz"
+            echo ""
+            echo "\`Docker/frontend.Dockerfile\` we \`requirements.txt\` **doňdurylan**"
+            echo "(ROADMAP A3/A4). Şowsuzlygyň sebäbi köplenç şulardan biri:"
+            echo ""
+            echo "- \`npm ci --frozen-lockfile\` — npm-de beýle flag ýok (O-series)"
+            echo "- Build konteksti \`frontend\`, ýöne Dockerfile \`Docker/\` içinde → \`COPY . .\` ýoly"
+            echo "- \`VITE_FIREBASE_*\` ARG-leri ýok → FCM production-da işlemeýär"
+            echo ""
+            echo "Düzetmek üçin eýesinden rugsat gerek."
+          } >> "$GITHUB_STEP_SUMMARY"
